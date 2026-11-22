@@ -34,7 +34,7 @@ export const useCategoryStore = create<CategoryStore>((set, get) => ({
   fetchCategories: async (force = false) => {
     const now = Date.now();
     // Throttle calls to avoid rapid duplicate network requests
-    if (!force && now - get().lastFetched < 2500 && get().categories.length > 0) {
+    if (!force && now - get().lastFetched < 60000 && get().categories.length > 0) {
       return;
     }
     try {
