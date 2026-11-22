@@ -1,6 +1,4 @@
 import { CATEGORIES as DEFAULT_CATEGORIES } from '@/lib/constants';
-import fs from 'fs';
-import path from 'path';
 
 export interface InMemoryCategory {
   _id: string;
@@ -15,25 +13,52 @@ export interface InMemoryCategory {
   sortOrder: number;
 }
 
-const CATEGORIES_JSON_PATH = path.join(process.cwd(), 'src', 'data', 'categories.json');
-
 // Global cache that persists across hot reloads in dev mode
 declare global {
   // eslint-disable-next-line no-var
   var __inMemoryCategories: InMemoryCategory[] | undefined;
 }
 
-function loadCategoriesFromDisk(): InMemoryCategory[] {
-  try {
-    if (fs.existsSync(CATEGORIES_JSON_PATH)) {
-      const content = fs.readFileSync(CATEGORIES_JSON_PATH, 'utf-8');
-      const parsed = JSON.parse(content);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
+function getFs() {
+  if (typeof window === 'undefined') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      return require('fs');
+    } catch {
+      return null;
     }
-  } catch (err) {
-    console.error('Error reading categories.json:', err);
+  }
+  return null;
+}
+
+function getPath() {
+  if (typeof window === 'undefined') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      return require('path');
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function loadCategoriesFromDisk(): InMemoryCategory[] {
+  const fs = getFs();
+  const path = getPath();
+  if (fs && path) {
+    try {
+      const filePath = path.join(process.cwd(), 'src', 'data', 'categories.json');
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const parsed = JSON.parse(content);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (err) {
+      console.error('Error reading categories.json:', err);
+    }
   }
 
   const defaultList: InMemoryCategory[] = DEFAULT_CATEGORIES.map((c, index) => ({
@@ -54,8 +79,12 @@ function loadCategoriesFromDisk(): InMemoryCategory[] {
 }
 
 function saveCategoriesToDisk(categories: InMemoryCategory[]): void {
+  const fs = getFs();
+  const path = getPath();
+  if (!fs || !path) return;
   try {
-    fs.writeFileSync(CATEGORIES_JSON_PATH, JSON.stringify(categories, null, 2), 'utf-8');
+    const filePath = path.join(process.cwd(), 'src', 'data', 'categories.json');
+    fs.writeFileSync(filePath, JSON.stringify(categories, null, 2), 'utf-8');
   } catch (err) {
     console.error('Error writing categories.json:', err);
   }

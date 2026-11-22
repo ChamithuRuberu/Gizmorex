@@ -1,9 +1,5 @@
 import { Product } from '@/types';
-import fs from 'fs';
-import path from 'path';
 import idoProducts from '@/data/products.json';
-
-const PRODUCTS_JSON_PATH = path.join(process.cwd(), 'src', 'data', 'products.json');
 
 // Global in-memory product cache persisting across HMR
 declare global {
@@ -11,24 +7,57 @@ declare global {
   var __inMemoryProducts: Product[] | undefined;
 }
 
-function loadProductsFromDisk(): Product[] {
-  try {
-    if (fs.existsSync(PRODUCTS_JSON_PATH)) {
-      const content = fs.readFileSync(PRODUCTS_JSON_PATH, 'utf-8');
-      const parsed = JSON.parse(content);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
-      }
+function getFs() {
+  if (typeof window === 'undefined') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      return require('fs');
+    } catch {
+      return null;
     }
-  } catch (err) {
-    console.error('Error reading products.json from disk:', err);
+  }
+  return null;
+}
+
+function getPath() {
+  if (typeof window === 'undefined') {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
+      return require('path');
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+function loadProductsFromDisk(): Product[] {
+  const fs = getFs();
+  const path = getPath();
+  if (fs && path) {
+    try {
+      const filePath = path.join(process.cwd(), 'src', 'data', 'products.json');
+      if (fs.existsSync(filePath)) {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        const parsed = JSON.parse(content);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+    } catch (err) {
+      console.error('Error reading products.json from disk:', err);
+    }
   }
   return Array.isArray(idoProducts) ? (idoProducts as unknown as Product[]) : [];
 }
 
 export function saveProductsToDisk(products: Product[]): void {
+  const fs = getFs();
+  const path = getPath();
+  if (!fs || !path) return;
   try {
-    fs.writeFileSync(PRODUCTS_JSON_PATH, JSON.stringify(products, null, 2), 'utf-8');
+    const filePath = path.join(process.cwd(), 'src', 'data', 'products.json');
+    fs.writeFileSync(filePath, JSON.stringify(products, null, 2), 'utf-8');
   } catch (err) {
     console.error('Error writing products.json to disk:', err);
   }
