@@ -1,0 +1,89 @@
+╔════════════════════════════════════════════════════════════════╗
+║  MONGODB ATLAS SETUP - QUICK CHECKLIST (5 MINUTES)            ║
+╚════════════════════════════════════════════════════════════════╝
+
+Do these steps IN ORDER:
+
+□ STEP 1: Create Account
+  → Go to: https://www.mongodb.com/cloud/atlas/register
+  → Sign up with Google (fastest) or email
+  → Click "Create a Database"
+
+□ STEP 2: Choose FREE Cluster
+  → Select: M0 - FREE (512 MB)
+  → Provider: AWS
+  → Region: Singapore or Mumbai (closest to Sri Lanka)
+  → Click "Create Cluster"
+
+□ STEP 3: Create Database User
+  → Username: gizmorex_admin (or your choice)
+  → Click "Autogenerate Secure Password"
+  → COPY THE PASSWORD! (you'll need it in step 5)
+  → Click "Create User"
+
+□ STEP 4: Allow IP Access
+  → Click "Add My Current IP Address"
+  → OR use 0.0.0.0/0 to allow all IPs
+  → Click "Add Entry"
+  → Click "Finish and Close"
+
+□ STEP 5: Get Connection String
+  → Click "Connect" button on Cluster0
+  → Choose "Drivers"
+  → Copy the connection string
+  → Replace <password> with your real password from step 3
+  → Add /gizmorex before the ? symbol
+  
+  Example:
+  mongodb+srv://username:password@cluster0.xxxxx.mongodb.net/gizmorex?retryWrites=true
+
+□ STEP 6: Update .env.local
+  → Open: .env.local file in VS Code
+  → Find line: MONGODB_URI=mongodb://localhost:27017/gizmorex
+  → Replace with your connection string from step 5
+  → Save file (Ctrl+S)
+
+□ STEP 7: Test It
+  → Open terminal in VS Code
+  → Run: npm run dev
+  → Look for: "✓ MongoDB connected successfully"
+
+□ STEP 8: Add Sample Products
+  → In terminal, run: npm run seed
+  → Should see: "✓ Database seeded successfully!"
+
+□ STEP 9: Open Your Store
+  → Customer site: http://localhost:3000
+  → Admin panel: http://localhost:3000/admin
+
+╔════════════════════════════════════════════════════════════════╗
+║  DONE! Your store is now running with cloud database! 🎉      ║
+╚════════════════════════════════════════════════════════════════╝
+
+STUCK? Common issues:
+
+❌ "Authentication failed"
+   → Check password in connection string
+   → Avoid special characters in password
+
+❌ "Could not connect"
+   → Check IP whitelist allows 0.0.0.0/0
+   → Wait 2-3 minutes after changes
+
+❌ "Module not found"
+   → Run: npm install
+   → Then try again
+
+IMPORTANT NOTES:
+• This is 100% FREE forever (no credit card needed)
+• 512 MB = enough for 10,000+ products
+• Your data is backed up automatically
+• You can access it from anywhere
+
+WHAT TO DO AFTER SETUP:
+1. Go to http://localhost:3000/admin/products
+2. Click "Add New Product"
+3. Upload real images using drag & drop
+4. Your Cloudinary images will upload automatically!
+
+See MONGODB_ATLAS_SETUP_GUIDE.md for detailed screenshots and help.

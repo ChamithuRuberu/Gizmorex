@@ -1,0 +1,85 @@
+================================================================================
+   ⚠️  FIXING "MONGODB CONNECTION REFUSED" ERROR
+================================================================================
+
+The error you're seeing means MongoDB is not running.
+
+EASIEST SOLUTION: Use MongoDB Atlas (Cloud) - FREE & Takes 5 Minutes!
+
+================================================================================
+   🚀 QUICK FIX (5 MINUTES)
+================================================================================
+
+1. Go to: https://www.mongodb.com/cloud/atlas/register
+
+2. Create FREE account (no credit card!)
+
+3. Create FREE cluster:
+   - Click "Build a Database"
+   - Choose "FREE" (M0)
+   - Click "Create"
+
+4. Create database user:
+   - Username: gizmorex
+   - Password: (make a strong one - save it!)
+
+5. Add IP address:
+   - Click "Add My Current IP"
+   - Or add: 0.0.0.0/0 (allow all)
+
+6. Get connection string:
+   - Click "Connect"
+   - Choose "Connect your application"
+   - Copy the string (looks like):
+     mongodb+srv://gizmorex:password@cluster0.xxxxx.mongodb.net/
+
+7. Update .env.local:
+   - Open .env.local file
+   - Find line: MONGODB_URI=...
+   - Replace with YOUR connection string
+   - Add /gizmorex before the ?
+   - Example:
+     mongodb+srv://gizmorex:MyPass123@cluster0.abc.mongodb.net/gizmorex?retryWrites=true&w=majority
+
+8. Restart server:
+   - Press Ctrl+C to stop
+   - Run: npm run dev
+
+✅ DONE! The error should be gone!
+
+================================================================================
+   📝 DETAILED GUIDE
+================================================================================
+
+Read: MONGODB_SETUP.md (in your project folder)
+
+================================================================================
+   ❓ WHY MONGODB ATLAS?
+================================================================================
+
+✅ Free forever (512MB)
+✅ No installation needed
+✅ Works everywhere
+✅ Automatic backups
+✅ Easy to use
+
+vs Local MongoDB:
+❌ Needs installation
+❌ Need to start/stop service
+❌ More complex setup
+
+================================================================================
+   🎯 AFTER SETUP
+================================================================================
+
+Then you can run:
+
+1. npm run seed     (add sample products)
+2. npm run dev      (start your store)
+3. Go to: http://localhost:3000/admin
+
+================================================================================
+
+NEED HELP? Check MONGODB_SETUP.md for detailed instructions!
+
+================================================================================

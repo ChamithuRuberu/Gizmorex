@@ -1,0 +1,8 @@
+{
+  "/api/categories/route": "app/api/categories/route.js",
+  "/admin/products/page": "app/admin/products/page.js",
+  "/(shop)/page": "app/(shop)/page.js",
+  "/admin/products/[id]/page": "app/admin/products/[id]/page.js",
+  "/(shop)/categories/[slug]/page": "app/(shop)/categories/[slug]/page.js",
+  "/admin/categories/page": "app/admin/categories/page.js"
+}
