@@ -1,4 +1,6 @@
 import { CATEGORIES as DEFAULT_CATEGORIES } from '@/lib/constants';
+import fs from 'fs';
+import path from 'path';
 
 export interface InMemoryCategory {
   _id: string;
@@ -13,26 +15,55 @@ export interface InMemoryCategory {
   sortOrder: number;
 }
 
+const CATEGORIES_JSON_PATH = path.join(process.cwd(), 'src', 'data', 'categories.json');
+
 // Global cache that persists across hot reloads in dev mode
 declare global {
   // eslint-disable-next-line no-var
   var __inMemoryCategories: InMemoryCategory[] | undefined;
 }
 
+function loadCategoriesFromDisk(): InMemoryCategory[] {
+  try {
+    if (fs.existsSync(CATEGORIES_JSON_PATH)) {
+      const content = fs.readFileSync(CATEGORIES_JSON_PATH, 'utf-8');
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
+      }
+    }
+  } catch (err) {
+    console.error('Error reading categories.json:', err);
+  }
+
+  const defaultList: InMemoryCategory[] = DEFAULT_CATEGORIES.map((c, index) => ({
+    _id: `cat_${c.slug}`,
+    name: c.name,
+    slug: c.slug,
+    description: `Browse latest ${c.name} and accessories`,
+    icon: c.icon || 'Package',
+    color: c.color || '#FF6B00',
+    image: (c as any).image || '',
+    productCount: 0,
+    isActive: true,
+    sortOrder: index,
+  }));
+
+  saveCategoriesToDisk(defaultList);
+  return defaultList;
+}
+
+function saveCategoriesToDisk(categories: InMemoryCategory[]): void {
+  try {
+    fs.writeFileSync(CATEGORIES_JSON_PATH, JSON.stringify(categories, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error writing categories.json:', err);
+  }
+}
+
 export function getInitialFallbackCategories(): InMemoryCategory[] {
   if (!global.__inMemoryCategories) {
-    global.__inMemoryCategories = DEFAULT_CATEGORIES.map((c, index) => ({
-      _id: `cat_${c.slug}`,
-      name: c.name,
-      slug: c.slug,
-      description: `Browse latest ${c.name} and accessories`,
-      icon: c.icon || 'Package',
-      color: c.color || '#FF6B00',
-      image: (c as any).image || '',
-      productCount: 0,
-      isActive: true,
-      sortOrder: index,
-    }));
+    global.__inMemoryCategories = loadCategoriesFromDisk();
   }
   return global.__inMemoryCategories;
 }
@@ -63,6 +94,7 @@ export function updateFallbackCategory(idOrSlug: string, updates: Partial<InMemo
       sortOrder: updates.sortOrder || categories.length,
     };
     categories.push(newCategory);
+    saveCategoriesToDisk(categories);
     return newCategory;
   }
 
@@ -76,6 +108,7 @@ export function updateFallbackCategory(idOrSlug: string, updates: Partial<InMemo
   };
 
   categories[index] = updated;
+  saveCategoriesToDisk(categories);
   return updated;
 }
 
@@ -92,6 +125,7 @@ export function deleteFallbackCategory(idOrSlug: string): boolean {
 
   if (index !== -1) {
     categories.splice(index, 1);
+    saveCategoriesToDisk(categories);
     return true;
   }
   return false;

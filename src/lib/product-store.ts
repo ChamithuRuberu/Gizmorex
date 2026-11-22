@@ -1,6 +1,9 @@
-import { MOCK_PRODUCTS } from '@/lib/data';
 import { Product } from '@/types';
+import fs from 'fs';
+import path from 'path';
 import idoProducts from '@/data/products.json';
+
+const PRODUCTS_JSON_PATH = path.join(process.cwd(), 'src', 'data', 'products.json');
 
 // Global in-memory product cache persisting across HMR
 declare global {
@@ -8,29 +11,32 @@ declare global {
   var __inMemoryProducts: Product[] | undefined;
 }
 
-export function getInitialFallbackProducts(): Product[] {
-  if (!global.__inMemoryProducts || global.__inMemoryProducts.length < 50) {
-    const rawList: Product[] = [
-      ...MOCK_PRODUCTS,
-      ...(idoProducts as unknown as Product[]),
-    ];
-    const seen = new Set<string>();
-    const unique: Product[] = [];
-
-    for (const p of rawList) {
-      const key = (p.slug || p._id).toLowerCase();
-      if (!seen.has(key)) {
-        seen.add(key);
-        unique.push({
-          ...p,
-          specifications: { ...(p.specifications || {}) },
-          features: [...(p.features || [])],
-          images: [...(p.images || [])],
-          tags: [...(p.tags || [])],
-        });
+function loadProductsFromDisk(): Product[] {
+  try {
+    if (fs.existsSync(PRODUCTS_JSON_PATH)) {
+      const content = fs.readFileSync(PRODUCTS_JSON_PATH, 'utf-8');
+      const parsed = JSON.parse(content);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        return parsed;
       }
     }
-    global.__inMemoryProducts = unique;
+  } catch (err) {
+    console.error('Error reading products.json from disk:', err);
+  }
+  return Array.isArray(idoProducts) ? (idoProducts as unknown as Product[]) : [];
+}
+
+export function saveProductsToDisk(products: Product[]): void {
+  try {
+    fs.writeFileSync(PRODUCTS_JSON_PATH, JSON.stringify(products, null, 2), 'utf-8');
+  } catch (err) {
+    console.error('Error writing products.json to disk:', err);
+  }
+}
+
+export function getInitialFallbackProducts(): Product[] {
+  if (!global.__inMemoryProducts) {
+    global.__inMemoryProducts = loadProductsFromDisk();
   }
   return global.__inMemoryProducts;
 }
@@ -75,8 +81,8 @@ export function updateFallbackProduct(
       price: parseNumber(updates.price, 0),
       originalPrice: parseNumber(updates.originalPrice, parseNumber(updates.price, 0)),
       discount: updates.discount || 0,
-      images: Array.isArray(updates.images) ? updates.images : ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600'],
-      category: updates.category || 'General',
+      images: Array.isArray(updates.images) && updates.images.length > 0 ? updates.images : ['https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600'],
+      category: updates.category || 'accessories',
       brand: updates.brand || 'Gizmorex',
       stock: parseNumber(updates.stock, 10),
       sold: parseNumber(updates.sold, 0),
@@ -94,6 +100,7 @@ export function updateFallbackProduct(
       updatedAt: new Date().toISOString(),
     };
     products.unshift(newProduct);
+    saveProductsToDisk(products);
     return newProduct;
   }
 
@@ -109,6 +116,7 @@ export function updateFallbackProduct(
   };
 
   products[index] = updated;
+  saveProductsToDisk(products);
   return updated;
 }
 
@@ -122,6 +130,7 @@ export function deleteFallbackProduct(idOrSlug: string): boolean {
 
   if (index !== -1) {
     products.splice(index, 1);
+    saveProductsToDisk(products);
     return true;
   }
   return false;

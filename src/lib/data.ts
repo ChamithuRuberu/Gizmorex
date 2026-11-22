@@ -1,563 +1,53 @@
-// Mock product data for Gizmorex
 import { Product } from '@/types';
 import { getFallbackProduct, getInitialFallbackProducts } from '@/lib/product-store';
 
-export const MOCK_PRODUCTS: Product[] = [
-  // Smartphones
-  {
-    _id: '1', name: 'Samsung Galaxy S24 Ultra', slug: 'samsung-galaxy-s24-ultra',
-    description: 'The ultimate Samsung flagship with 200MP camera, S Pen, and AI features. Experience the future of mobile photography.',
-    price: 299900, originalPrice: 349900, discount: 14,
-    images: [
-      'https://res.cloudinary.com/yvp0ravz/image/upload/v1795325292/gizmorex-products/j4nr6buvnjlpptrwxhgm.jpg',
-      'https://res.cloudinary.com/yvp0ravz/image/upload/v1795325293/gizmorex-products/wo0sq9zvh4nvk0itsg3u.jpg',
-    ],
-    category: 'smartphones', brand: 'Samsung', stock: 15, sold: 234,
-    rating: 4.8, numReviews: 156, isFeatured: true, isFlashDeal: false, isNew: false, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['200MP Main Camera', 'S Pen Included', 'Snapdragon 8 Gen 3', '5000mAh Battery', 'Titanium Frame'],
-    specifications: { 'Display': '6.8" QHD+ Dynamic AMOLED', 'RAM': '12GB', 'Storage': '256GB', 'Battery': '5000mAh', 'OS': 'Android 14' },
-    tags: ['flagship', 'camera', 's-pen', '5g'], createdAt: '2024-01-15T00:00:00Z', updatedAt: '2024-01-15T00:00:00Z',
+// MOCK_PRODUCTS proxy dynamically reflects the authentic catalog from products.json
+// Supports full array methods (.map, .filter, .slice, .length, [index], etc.)
+export const MOCK_PRODUCTS: Product[] = new Proxy([] as Product[], {
+  get(target, prop, receiver) {
+    const list = getInitialFallbackProducts();
+    const value = Reflect.get(list, prop);
+    if (typeof value === 'function') {
+      return value.bind(list);
+    }
+    return value;
   },
-  {
-    _id: '2', name: 'iPhone 15 Pro Max', slug: 'iphone-15-pro-max',
-    description: 'Apple\'s most powerful iPhone with A17 Pro chip, titanium design, and USB-C with USB 3 speeds.',
-    price: 389900, originalPrice: 420000, discount: 7,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325292/gizmorex-products/j4nr6buvnjlpptrwxhgm.jpg'],
-    category: 'smartphones', brand: 'Apple', stock: 8, sold: 189,
-    rating: 4.9, numReviews: 203, isFeatured: true, isFlashDeal: true, isNew: false, isActive: true,
-    flashDealEndsAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-    features: ['A17 Pro Chip', 'Titanium Design', '48MP Main Camera', 'Action Button', 'USB-C USB 3'],
-    specifications: { 'Display': '6.7" Super Retina XDR', 'RAM': '8GB', 'Storage': '256GB', 'Battery': '4422mAh', 'OS': 'iOS 17' },
-    tags: ['apple', 'flagship', 'pro', '5g'], createdAt: '2024-01-10T00:00:00Z', updatedAt: '2024-01-10T00:00:00Z',
-  },
-  {
-    _id: '3', name: 'Xiaomi 14 Pro', slug: 'xiaomi-14-pro',
-    description: 'Leica-tuned camera system with Snapdragon 8 Gen 3 and ultra-fast charging at 120W.',
-    price: 189900, originalPrice: 220000, discount: 14,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325294/gizmorex-products/ojpmojcgnrchvcq63hyt.jpg'],
-    category: 'smartphones', brand: 'Xiaomi', stock: 22, sold: 87,
-    rating: 4.6, numReviews: 64, isFeatured: false, isFlashDeal: true, isNew: true, isActive: true,
-    flashDealEndsAt: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
-    features: ['Leica Camera', '120W HyperCharge', 'Snapdragon 8 Gen 3', '50MP Triple Camera', 'IP68'],
-    specifications: { 'Display': '6.73" LTPO AMOLED', 'RAM': '12GB', 'Storage': '256GB', 'Battery': '4880mAh', 'OS': 'Android 14' },
-    tags: ['leica', 'fast-charge', '5g'], createdAt: '2024-02-01T00:00:00Z', updatedAt: '2024-02-01T00:00:00Z',
-  },
-  {
-    _id: '4', name: 'Google Pixel 8a', slug: 'google-pixel-8a',
-    description: 'Google AI-powered photography and 7 years of OS updates at an accessible price.',
-    price: 119900, originalPrice: 139900, discount: 14,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325295/gizmorex-products/uvavqemeyhwtviiibvsk.jpg'],
-    category: 'smartphones', brand: 'Google', stock: 30, sold: 45,
-    rating: 4.5, numReviews: 38, isFeatured: false, isFlashDeal: false, isNew: true, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['Google Tensor G3', 'Magic Eraser', '64MP Camera', '7 Year Updates', 'Titan M2 Security'],
-    specifications: { 'Display': '6.1" OLED', 'RAM': '8GB', 'Storage': '128GB', 'Battery': '4492mAh', 'OS': 'Android 14' },
-    tags: ['google', 'ai', 'clean-android'], createdAt: '2024-02-10T00:00:00Z', updatedAt: '2024-02-10T00:00:00Z',
-  },
+});
 
-  // Laptops
-  {
-    _id: '5', name: 'MacBook Air M3 13"', slug: 'macbook-air-m3-13',
-    description: 'Incredibly thin and light with the powerful M3 chip, all-day battery, and stunning Liquid Retina display.',
-    price: 329900, originalPrice: 359900, discount: 8,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325296/gizmorex-products/mkkn1dpy438x5qawdzbo.jpg'],
-    category: 'laptops', brand: 'Apple', stock: 10, sold: 156,
-    rating: 4.9, numReviews: 112, isFeatured: true, isFlashDeal: false, isNew: false, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['Apple M3 Chip', '18-Hour Battery', 'Liquid Retina Display', 'MagSafe Charging', 'Fanless Design'],
-    specifications: { 'Display': '13.6" Liquid Retina', 'RAM': '8GB Unified', 'Storage': '256GB SSD', 'CPU': 'Apple M3', 'OS': 'macOS Sonoma' },
-    tags: ['apple', 'ultrabook', 'silent', 'm3'], createdAt: '2024-01-20T00:00:00Z', updatedAt: '2024-01-20T00:00:00Z',
+export const FLASH_DEAL_PRODUCTS: Product[] = new Proxy([] as Product[], {
+  get(target, prop, receiver) {
+    const list = getInitialFallbackProducts().filter((p) => p.isFlashDeal);
+    const value = Reflect.get(list, prop);
+    if (typeof value === 'function') {
+      return value.bind(list);
+    }
+    return value;
   },
-  {
-    _id: '6', name: 'ASUS ROG Zephyrus G14', slug: 'asus-rog-zephyrus-g14',
-    description: 'Compact 14" gaming powerhouse with AMD Ryzen 9 and RTX 4060, with stunning OLED display.',
-    price: 269900, originalPrice: 299900, discount: 10,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325296/gizmorex-products/cytzwv4lbg0fifysvply.jpg'],
-    category: 'laptops', brand: 'ASUS', stock: 7, sold: 98,
-    rating: 4.7, numReviews: 76, isFeatured: true, isFlashDeal: true, isNew: false, isActive: true,
-    flashDealEndsAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
-    features: ['RTX 4060 GPU', 'Ryzen 9 8945HS', '2.8K OLED 120Hz', 'AniMe Matrix LED', '73Wh Battery'],
-    specifications: { 'Display': '14" 2.8K OLED 120Hz', 'RAM': '16GB DDR5', 'Storage': '1TB NVMe', 'GPU': 'RTX 4060 8GB', 'OS': 'Windows 11' },
-    tags: ['gaming', 'rtx', 'oled', 'amd'], createdAt: '2024-01-25T00:00:00Z', updatedAt: '2024-01-25T00:00:00Z',
-  },
-  {
-    _id: '7', name: 'Dell XPS 15 (2024)', slug: 'dell-xps-15-2024',
-    description: 'Professional-grade laptop with Intel Core Ultra, RTX 4060, and stunning InfinityEdge OLED display.',
-    price: 349900, originalPrice: 389900, discount: 10,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325297/gizmorex-products/znhbu1swvv1tjj1wb3qq.jpg'],
-    category: 'laptops', brand: 'Dell', stock: 5, sold: 67,
-    rating: 4.6, numReviews: 54, isFeatured: false, isFlashDeal: false, isNew: false, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['Intel Core Ultra 9', 'RTX 4060 Laptop', '3.5K OLED Touch', 'Thunderbolt 4', 'SD Card Reader'],
-    specifications: { 'Display': '15.6" 3.5K OLED Touch', 'RAM': '32GB DDR5', 'Storage': '1TB SSD', 'CPU': 'Intel Core Ultra 9', 'OS': 'Windows 11 Pro' },
-    tags: ['dell', 'professional', 'oled', 'creator'], createdAt: '2024-02-05T00:00:00Z', updatedAt: '2024-02-05T00:00:00Z',
-  },
+});
 
-  // Audio
-  {
-    _id: '8', name: 'Sony WH-1000XM5', slug: 'sony-wh-1000xm5',
-    description: 'Industry-leading noise cancellation with premium sound quality and 30-hour battery life.',
-    price: 42900, originalPrice: 54900, discount: 22,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325298/gizmorex-products/bt6adtvytj83uocguewo.jpg'],
-    category: 'audio', brand: 'Sony', stock: 35, sold: 312,
-    rating: 4.8, numReviews: 289, isFeatured: true, isFlashDeal: true, isNew: false, isActive: true,
-    flashDealEndsAt: new Date(Date.now() + 6 * 60 * 60 * 1000).toISOString(),
-    features: ['Industry-Leading ANC', '30-Hour Battery', 'Multipoint Connection', 'Speak-to-Chat', 'LDAC Support'],
-    specifications: { 'Type': 'Over-Ear', 'Driver': '30mm', 'Battery': '30 hours', 'Charging': 'USB-C 3h', 'Bluetooth': '5.2' },
-    tags: ['anc', 'wireless', 'premium'], createdAt: '2024-01-05T00:00:00Z', updatedAt: '2024-01-05T00:00:00Z',
+export const FEATURED_PRODUCTS: Product[] = new Proxy([] as Product[], {
+  get(target, prop, receiver) {
+    const list = getInitialFallbackProducts().filter((p) => p.isFeatured);
+    const value = Reflect.get(list, prop);
+    if (typeof value === 'function') {
+      return value.bind(list);
+    }
+    return value;
   },
-  {
-    _id: '9', name: 'Apple AirPods Pro 2nd Gen', slug: 'apple-airpods-pro-2nd-gen',
-    description: 'All-new H2 chip with Adaptive Audio, Transparency mode, and Personalized Spatial Audio.',
-    price: 59900, originalPrice: 69900, discount: 14,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325299/gizmorex-products/mfxrb3usy8ae58ppfn9r.jpg'],
-    category: 'audio', brand: 'Apple', stock: 20, sold: 198,
-    rating: 4.7, numReviews: 167, isFeatured: false, isFlashDeal: false, isNew: false, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['H2 Chip', 'Adaptive Audio', 'USB-C Case', 'IP54 Rated', 'Personalized Spatial Audio'],
-    specifications: { 'Type': 'In-Ear TWS', 'Battery': '6h + 24h case', 'Charging': 'USB-C / MagSafe', 'Bluetooth': '5.3', 'ANC': 'Yes' },
-    tags: ['apple', 'anc', 'tws'], createdAt: '2024-01-08T00:00:00Z', updatedAt: '2024-01-08T00:00:00Z',
-  },
-  {
-    _id: '10', name: 'JBL Charge 5 Portable Speaker', slug: 'jbl-charge-5-portable-speaker',
-    description: 'Powerful portable speaker with 20-hour battery, IP67 waterproof, and power bank function.',
-    price: 24900, originalPrice: 29900, discount: 17,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325299/gizmorex-products/d2gho9btrvkga6praqjr.jpg'],
-    category: 'audio', brand: 'JBL', stock: 45, sold: 234,
-    rating: 4.6, numReviews: 198, isFeatured: false, isFlashDeal: false, isNew: false, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['IP67 Waterproof', '20-Hour Battery', 'Power Bank Function', 'PartyBoost', 'USB-C Charging'],
-    specifications: { 'Type': 'Portable Speaker', 'Battery': '20 hours', 'Waterproof': 'IP67', 'Power Output': '30W', 'Bluetooth': '5.1' },
-    tags: ['jbl', 'portable', 'waterproof'], createdAt: '2024-01-12T00:00:00Z', updatedAt: '2024-01-12T00:00:00Z',
-  },
+});
 
-  // Gaming
-  {
-    _id: '11', name: 'Sony PlayStation 5 Slim', slug: 'sony-playstation-5-slim',
-    description: 'Next-gen gaming with ultra-high speed SSD, haptic feedback DualSense controller, and 4K gaming.',
-    price: 119900, originalPrice: 139900, discount: 14,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325300/gizmorex-products/jt42e0t0choidjp8y72h.jpg'],
-    category: 'gaming', brand: 'Sony', stock: 6, sold: 445,
-    rating: 4.9, numReviews: 387, isFeatured: true, isFlashDeal: false, isNew: false, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['4K Gaming', 'DualSense Controller', 'Ultra-HD Blu-ray', '1TB SSD', 'Backward Compatible'],
-    specifications: { 'CPU': 'AMD Zen 2 8-core', 'GPU': 'AMD RDNA 2 10.3TF', 'RAM': '16GB GDDR6', 'Storage': '1TB NVMe SSD', 'Resolution': 'Up to 8K' },
-    tags: ['ps5', 'gaming', 'console', '4k'], createdAt: '2024-01-03T00:00:00Z', updatedAt: '2024-01-03T00:00:00Z',
+export const NEW_ARRIVALS: Product[] = new Proxy([] as Product[], {
+  get(target, prop, receiver) {
+    const list = getInitialFallbackProducts().filter((p) => p.isNew);
+    const value = Reflect.get(list, prop);
+    if (typeof value === 'function') {
+      return value.bind(list);
+    }
+    return value;
   },
-  {
-    _id: '12', name: 'Razer BlackShark V2 Pro Gaming Headset', slug: 'razer-blackshark-v2-pro',
-    description: 'THX Spatial Audio, 50mm TriForce drivers, and HyperClear Super Cardioid mic for competitive gaming.',
-    price: 29900, originalPrice: 36900, discount: 19,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325301/gizmorex-products/rxjxkjgrwpexd8kuv7zt.jpg'],
-    category: 'gaming', brand: 'Razer', stock: 18, sold: 123,
-    rating: 4.7, numReviews: 98, isFeatured: false, isFlashDeal: true, isNew: false, isActive: true,
-    flashDealEndsAt: new Date(Date.now() + 10 * 60 * 60 * 1000).toISOString(),
-    features: ['THX Spatial Audio', '50mm TriForce Drivers', 'HyperClear Mic', '70-Hour Battery', '2.4GHz Wireless'],
-    specifications: { 'Type': 'Gaming Headset', 'Driver': '50mm', 'Battery': '70 hours', 'Connection': '2.4GHz / Bluetooth', 'Mic': 'Detachable' },
-    tags: ['razer', 'gaming', 'wireless', 'thx'], createdAt: '2024-01-18T00:00:00Z', updatedAt: '2024-01-18T00:00:00Z',
-  },
+});
 
-  // Smart Home
-  {
-    _id: '13', name: 'Amazon Echo Show 10 (3rd Gen)', slug: 'amazon-echo-show-10',
-    description: 'Smart display with motion tracking, 13MP camera, and 10.1" HD screen for video calls and smart home control.',
-    price: 34900, originalPrice: 42900, discount: 19,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325302/gizmorex-products/jrhn3b4ivhbhenltkglv.jpg'],
-    category: 'smart-home', brand: 'Amazon', stock: 25, sold: 89,
-    rating: 4.5, numReviews: 76, isFeatured: false, isFlashDeal: false, isNew: false, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['10.1" HD Screen', 'Motion Tracking', '13MP Camera', 'Alexa Built-in', 'Smart Home Hub'],
-    specifications: { 'Display': '10.1" HD', 'Camera': '13MP', 'Speaker': '2.1 stereo', 'Connectivity': 'WiFi 6 / Bluetooth', 'OS': 'Fire OS' },
-    tags: ['alexa', 'smart-display', 'echo'], createdAt: '2024-01-22T00:00:00Z', updatedAt: '2024-01-22T00:00:00Z',
-  },
-  {
-    _id: '14', name: 'TP-Link Tapo C200 Smart Camera', slug: 'tp-link-tapo-c200',
-    description: '1080p Pan/Tilt home security camera with night vision, two-way audio, and motion detection.',
-    price: 4900, originalPrice: 6900, discount: 29,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325302/gizmorex-products/fgo4y2jjooq50ttuinj8.jpg'],
-    category: 'smart-home', brand: 'TP-Link', stock: 60, sold: 456,
-    rating: 4.4, numReviews: 342, isFeatured: false, isFlashDeal: true, isNew: false, isActive: true,
-    flashDealEndsAt: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
-    features: ['1080p Full HD', 'Pan/Tilt 360°', 'Night Vision 10m', 'Two-Way Audio', 'Motion Detection'],
-    specifications: { 'Resolution': '1080p Full HD', 'FOV': '360° Pan / 114° Tilt', 'Night Vision': '10m', 'Storage': 'SD Card up to 128GB', 'App': 'Tapo' },
-    tags: ['security-camera', 'smart-home', 'ip-camera'], createdAt: '2024-01-28T00:00:00Z', updatedAt: '2024-01-28T00:00:00Z',
-  },
-
-  // Cameras
-  {
-    _id: '15', name: 'Sony Alpha A7 IV', slug: 'sony-alpha-a7-iv',
-    description: 'Full-frame mirrorless camera with 33MP BSI-CMOS sensor, 4K 60p video, and advanced AI-powered autofocus.',
-    price: 319900, originalPrice: 359900, discount: 11,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325303/gizmorex-products/yhzgmuhwyoxfy4kvtrez.jpg'],
-    category: 'cameras', brand: 'Sony', stock: 4, sold: 34,
-    rating: 4.9, numReviews: 28, isFeatured: true, isFlashDeal: false, isNew: false, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['33MP Full-Frame BSI-CMOS', '4K 60p Video', 'Real-Time Eye AF', '5-Axis IBIS', 'Dual Card Slots'],
-    specifications: { 'Sensor': '33MP Full-Frame BSI-CMOS', 'ISO': '50-204800', 'Video': '4K 60p / FHD 120fps', 'AF': '759 Phase-detect points', 'Battery': 'NP-FZ100' },
-    tags: ['mirrorless', 'full-frame', '4k', 'professional'], createdAt: '2024-01-07T00:00:00Z', updatedAt: '2024-01-07T00:00:00Z',
-  },
-  {
-    _id: '16', name: 'GoPro HERO12 Black', slug: 'gopro-hero12-black',
-    description: 'Capture stunning 5.3K60 video and 27MP photos with HyperSmooth 6.0 stabilization, waterproof to 10m.',
-    price: 59900, originalPrice: 69900, discount: 14,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325304/gizmorex-products/ino0e3c0nupm8tlwesrb.jpg'],
-    category: 'cameras', brand: 'GoPro', stock: 20, sold: 123,
-    rating: 4.6, numReviews: 98, isFeatured: false, isFlashDeal: false, isNew: false, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['5.3K60 Video', '27MP Photos', 'HyperSmooth 6.0', 'Waterproof 10m', 'HDR Video'],
-    specifications: { 'Video': '5.3K60 / 4K120', 'Photo': '27MP', 'Stabilization': 'HyperSmooth 6.0', 'Waterproof': '10m', 'Battery': '1720mAh Enduro' },
-    tags: ['action-camera', 'waterproof', '4k', 'adventure'], createdAt: '2024-01-30T00:00:00Z', updatedAt: '2024-01-30T00:00:00Z',
-  },
-
-  // Accessories
-  {
-    _id: '17', name: 'Anker 65W GaN USB-C Charger', slug: 'anker-65w-gan-usb-c-charger',
-    description: 'Ultra-compact 65W GaN charger with 3 ports (2× USB-C + 1× USB-A) for laptops, tablets and phones.',
-    price: 5900, originalPrice: 7900, discount: 25,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325305/gizmorex-products/q1fmqfqkbyidiwnpnztr.jpg'],
-    category: 'accessories', brand: 'Anker', stock: 80, sold: 567,
-    rating: 4.7, numReviews: 445, isFeatured: false, isFlashDeal: true, isNew: false, isActive: true,
-    flashDealEndsAt: new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(),
-    features: ['65W Total Output', 'GaN Technology', '3 Ports (2C+1A)', 'Compact Design', 'Universal Compatibility'],
-    specifications: { 'Power': '65W Max', 'Ports': '2× USB-C + 1× USB-A', 'Input': '100-240V AC', 'Size': '50×50×30mm', 'Weight': '130g' },
-    tags: ['charger', 'gan', 'usb-c', 'fast-charging'], createdAt: '2024-01-14T00:00:00Z', updatedAt: '2024-01-14T00:00:00Z',
-  },
-  {
-    _id: '18', name: 'Baseus 20000mAh Power Bank 65W', slug: 'baseus-20000mah-power-bank-65w',
-    description: 'High-capacity 20000mAh power bank with 65W output, charge laptops, tablets, and phones simultaneously.',
-    price: 8900, originalPrice: 11900, discount: 25,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325305/gizmorex-products/iiwsfiyzyjkksslwnlo5.jpg'],
-    category: 'accessories', brand: 'Baseus', stock: 55, sold: 234,
-    rating: 4.5, numReviews: 189, isFeatured: false, isFlashDeal: false, isNew: false, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['20000mAh Capacity', '65W Fast Output', '3 Output Ports', 'Digital Display', 'Airline Approved'],
-    specifications: { 'Capacity': '20000mAh / 74Wh', 'Output': '65W Max', 'Ports': '2× USB-C + 1× USB-A', 'Input': '30W Max', 'Weight': '450g' },
-    tags: ['power-bank', 'portable', 'laptop-charger'], createdAt: '2024-02-02T00:00:00Z', updatedAt: '2024-02-02T00:00:00Z',
-  },
-
-  // Wearables
-  {
-    _id: '19', name: 'Apple Watch Series 9 GPS 45mm', slug: 'apple-watch-series-9-gps-45mm',
-    description: 'The most advanced Apple Watch with S9 chip, Double Tap gesture, and Precision Finding for iPhone.',
-    price: 69900, originalPrice: 79900, discount: 13,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325306/gizmorex-products/jf3ajly6sncazy9vwqvh.jpg'],
-    category: 'wearables', brand: 'Apple', stock: 12, sold: 167,
-    rating: 4.8, numReviews: 143, isFeatured: true, isFlashDeal: false, isNew: false, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['S9 SiP Chip', 'Double Tap Gesture', 'Blood Oxygen Sensor', 'ECG App', 'Always-On Retina Display'],
-    specifications: { 'Display': '45mm Always-On Retina', 'Chip': 'Apple S9', 'Battery': '18 hours', 'Waterproof': '50m', 'OS': 'watchOS 10' },
-    tags: ['apple-watch', 'smartwatch', 'health', 'fitness'], createdAt: '2024-01-11T00:00:00Z', updatedAt: '2024-01-11T00:00:00Z',
-  },
-  {
-    _id: '20', name: 'Samsung Galaxy Watch 6 Classic 47mm', slug: 'samsung-galaxy-watch-6-classic',
-    description: 'Premium smartwatch with rotating bezel, body composition analysis, and comprehensive health tracking.',
-    price: 54900, originalPrice: 64900, discount: 15,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325307/gizmorex-products/t1ijtedss8fwyn7nhhso.jpg'],
-    category: 'wearables', brand: 'Samsung', stock: 18, sold: 98,
-    rating: 4.6, numReviews: 87, isFeatured: false, isFlashDeal: true, isNew: false, isActive: true,
-    flashDealEndsAt: new Date(Date.now() + 7 * 60 * 60 * 1000).toISOString(),
-    features: ['Rotating Bezel', 'Body Composition', 'BioActive Sensor', '40-Hour Battery', 'Sapphire Crystal Glass'],
-    specifications: { 'Display': '47mm Super AMOLED', 'Battery': '425mAh / 40h', 'Waterproof': '5ATM + IP68', 'OS': 'Wear OS / One UI Watch', 'Connectivity': 'BT 5.3 / WiFi / NFC' },
-    tags: ['samsung', 'smartwatch', 'classic', 'bezel'], createdAt: '2024-01-16T00:00:00Z', updatedAt: '2024-01-16T00:00:00Z',
-  },
-
-  // --- Authenticated ido.lk & WhatsApp Catalog Gadgets (+94 74 339 7281) ---
-  {
-    _id: '21', name: 'Wireless Collar Microphone K35 (Clip-On Lavalier)', slug: 'wireless-collar-microphone-k35',
-    description: 'Ultra-clear wireless collar lapel microphone system with 3.5mm receiver. Ideal for TikTok, YouTube, live streams, online teaching, and outdoor video recording.',
-    price: 4450, originalPrice: 6000, discount: 26,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325308/gizmorex-products/azycx9w2pszleq41a7uv.jpg'],
-    category: 'audio', brand: 'K35', stock: 35, sold: 142,
-    rating: 4.7, numReviews: 89, isFeatured: true, isFlashDeal: true, isNew: true, isActive: true,
-    flashDealEndsAt: new Date(Date.now() + 18 * 60 * 60 * 1000).toISOString(),
-    features: ['20m Barrier-Free Range', 'Smart Noise Reduction DSP', 'Plug & Play 3.5mm AUX', '5-Hour Battery Life', 'Ultra Lightweight Clip'],
-    specifications: { 'Polar Pattern': 'Omnidirectional 360°', 'Connector': '3.5mm Audio Jack', 'Frequency Range': '20Hz - 20kHz', 'Battery': 'Built-in Rechargeable 80mAh', 'Latency': '<15ms' },
-    tags: ['microphone', 'vlog', 'youtube', 'wireless-mic', 'ido-lk'], createdAt: '2024-02-15T00:00:00Z', updatedAt: '2024-02-15T00:00:00Z',
-  },
-  {
-    _id: '22', name: 'F11-2 Dual Wireless Clip Microphone for iPhone & Type-C', slug: 'f11-2-dual-wireless-clip-microphone',
-    description: 'Dual wireless lavalier clip microphone kit with 2 transmitters and 1 dual-interface receiver for smartphones, tablets, and cameras.',
-    price: 5750, originalPrice: 6500, discount: 12,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325309/gizmorex-products/tjol9c2b7fcfcr4ysuu1.jpg'],
-    category: 'audio', brand: 'F11', stock: 24, sold: 115,
-    rating: 4.8, numReviews: 67, isFeatured: false, isFlashDeal: true, isNew: true, isActive: true,
-    flashDealEndsAt: new Date(Date.now() + 14 * 60 * 60 * 1000).toISOString(),
-    features: ['2-Person Simultaneous Recording', 'Type-C & Lightning Dual Plug', 'Real-Time Audio Sync', 'Intelligent Noise Suppression', '7-Hour Working Time'],
-    specifications: { 'Compatibility': 'iPhone, Android, PC', 'Transmission Range': '25 Meters', 'Microphone Type': 'Dual Condenser', 'Battery Capacity': '65mAh per transmitter' },
-    tags: ['dual-mic', 'creator', 'interview', 'podcasting'], createdAt: '2024-02-16T00:00:00Z', updatedAt: '2024-02-16T00:00:00Z',
-  },
-  {
-    _id: '23', name: 'Plokama WM 60 Dual Wireless Studio Microphone with Handheld Stick', slug: 'plokama-wm-60-dual-wireless-microphone',
-    description: 'Professional wireless microphone system equipped with dual clip-on transmitters, digital frequency display, and detachable handheld interview wand.',
-    price: 6950, originalPrice: 7750, discount: 10,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325308/gizmorex-products/azycx9w2pszleq41a7uv.jpg'],
-    category: 'audio', brand: 'Plokama', stock: 16, sold: 78,
-    rating: 4.9, numReviews: 44, isFeatured: true, isFlashDeal: false, isNew: true, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['Handheld Interview Wand Adapter', 'Digital Display Screen', 'Dual Channel Receiver', 'Broadcast Quality 48kHz Audio', '3.5mm TRS & TRRS Support'],
-    specifications: { 'Channels': '2x TX + 1x RX', 'Signal-to-Noise': '>75dB', 'Frequency Response': '20Hz - 20kHz', 'Battery Life': '6-8 Hours' },
-    tags: ['plokama', 'studio-mic', 'interview', 'audio'], createdAt: '2024-02-18T00:00:00Z', updatedAt: '2024-02-18T00:00:00Z',
-  },
-  {
-    _id: '24', name: 'Anker Soundcore P20i True Wireless Earbuds', slug: 'anker-soundcore-p20i-true-wireless-earbuds',
-    description: 'Powerful 10mm oversized drivers deliver deep, immersive bass. Complete with 30-hour battery life, 2 AI-enhanced microphones, and Soundcore App customizable EQ.',
-    price: 4750, originalPrice: 5750, discount: 17,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325310/gizmorex-products/rxncjwytxdadssgb9agf.jpg'],
-    category: 'audio', brand: 'Anker', stock: 40, sold: 310,
-    rating: 4.8, numReviews: 185, isFeatured: true, isFlashDeal: false, isNew: false, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['10mm Dynamic Drivers with BassUp', '30 Hours Total Playtime', '2 AI Mics for Clear Calling', 'IPX5 Water Resistant', 'Custom EQ in Soundcore App'],
-    specifications: { 'Driver Size': '10mm', 'Bluetooth Version': '5.3', 'Playtime': '10h (single) / 30h (case)', 'Water Resistance': 'IPX5', 'Charging Port': 'USB-C' },
-    tags: ['anker', 'soundcore', 'tws', 'earbuds', 'bass'], createdAt: '2024-01-20T00:00:00Z', updatedAt: '2024-01-20T00:00:00Z',
-  },
-  {
-    _id: '25', name: 'Anker Soundcore R50i True Wireless Earbuds', slug: 'anker-soundcore-r50i-true-wireless-earbuds',
-    description: 'Compact wireless earbuds with lanyard case design. Features 22 preset EQs, fast charging, single earbud mode, and IPX5 weather protection.',
-    price: 4950, originalPrice: 7000, discount: 29,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325311/gizmorex-products/wamaayaqpruarh2anjlh.jpg'],
-    category: 'audio', brand: 'Anker', stock: 28, sold: 245,
-    rating: 4.7, numReviews: 130, isFeatured: false, isFlashDeal: true, isNew: false, isActive: true,
-    flashDealEndsAt: new Date(Date.now() + 20 * 60 * 60 * 1000).toISOString(),
-    features: ['Fast Charging (10m = 2 Hours)', '30 Hours Max Playtime', 'Built-in Case Lanyard', 'Touch Controls', 'Instant Pairing'],
-    specifications: { 'Bluetooth': '5.3', 'Waterproof': 'IPX5', 'App Support': 'Soundcore App', 'Weight': '4.6g per earbud' },
-    tags: ['anker', 'soundcore-r50i', 'earbuds', 'wireless'], createdAt: '2024-01-22T00:00:00Z', updatedAt: '2024-01-22T00:00:00Z',
-  },
-  {
-    _id: '26', name: 'Anker Soundcore P30i Hybrid Active Noise Cancelling Earbuds (42dB ANC)', slug: 'anker-soundcore-p30i-hybrid-anc-earbuds',
-    description: 'Strong 42dB hybrid active noise cancellation cuts out background city noise. Innovative 2-in-1 charging case doubles as an adjustable phone stand.',
-    price: 6550, originalPrice: 7250, discount: 10,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325312/gizmorex-products/ifc5qnl4oqr1dv6wtope.jpg'],
-    category: 'audio', brand: 'Anker', stock: 20, sold: 88,
-    rating: 4.9, numReviews: 52, isFeatured: true, isFlashDeal: false, isNew: true, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['42dB Hybrid Active Noise Cancellation', 'Charging Case with Built-in Phone Stand', 'Transparency Mode', '45 Hours Playtime', 'BassUp Enhanced Sound'],
-    specifications: { 'ANC Depth': '42dB Hybrid', 'Playtime': '10h (ANC off) / 45h (with case)', 'Bluetooth': '5.4', 'Waterproof': 'IP54' },
-    tags: ['anc', 'noise-cancelling', 'phone-stand', 'anker'], createdAt: '2024-02-10T00:00:00Z', updatedAt: '2024-02-10T00:00:00Z',
-  },
-  {
-    _id: '27', name: 'LP-V56 TWS Wireless Portable Bluetooth Speaker with RGB Light', slug: 'lp-v56-tws-wireless-bluetooth-speaker',
-    description: 'Compact dynamic portable party speaker with pulsating RGB lighting rings, TWS stereo pairing, FM tuner, USB drive, and TF card playback.',
-    price: 2250, originalPrice: 3500, discount: 36,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325312/gizmorex-products/yojyq4bifk6ioch7ghfa.jpg'],
-    category: 'audio', brand: 'LP', stock: 50, sold: 198,
-    rating: 4.5, numReviews: 64, isFeatured: false, isFlashDeal: true, isNew: false, isActive: true,
-    flashDealEndsAt: new Date(Date.now() + 10 * 60 * 60 * 1000).toISOString(),
-    features: ['RGB Dynamic Party Lights', 'TWS Wireless Stereo Interconnect', 'FM Radio & USB Port', 'Built-in Microphone for Calls', 'Lanyard Strap Included'],
-    specifications: { 'Power Output': '5W', 'Battery': '1200mAh Lithium', 'Bluetooth': '5.0', 'Playtime': '4-6 Hours', 'Inputs': 'BT/USB/TF/AUX/FM' },
-    tags: ['bluetooth-speaker', 'rgb', 'party-speaker', 'budget'], createdAt: '2024-02-05T00:00:00Z', updatedAt: '2024-02-05T00:00:00Z',
-  },
-  {
-    _id: '28', name: 'SonicGear SonicGo Clipz Portable Bluetooth Speaker', slug: 'sonicgear-sonicgo-clipz-portable-speaker',
-    description: 'Ultra-portable clip speaker with heavy bass tuning and integrated carabiner clip. Hang it on backpacks, bicycles, or tents for on-the-go music.',
-    price: 3450, originalPrice: 4500, discount: 23,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325299/gizmorex-products/d2gho9btrvkga6praqjr.jpg'],
-    category: 'audio', brand: 'SonicGear', stock: 22, sold: 94,
-    rating: 4.6, numReviews: 48, isFeatured: false, isFlashDeal: false, isNew: true, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['Heavy Bass Radiator', 'Built-in Sturdy Carabiner Clip', 'IPX5 Splashproof Body', 'Hands-Free Phone Calls', 'Type-C Fast Charging'],
-    specifications: { 'Power': '8W RMS', 'Bluetooth': '5.3', 'Battery Life': 'Up to 6 Hours', 'Charging Time': '2 Hours', 'Dimensions': '105 x 85 x 45 mm' },
-    tags: ['sonicgear', 'clip-speaker', 'outdoor', 'waterproof'], createdAt: '2024-02-08T00:00:00Z', updatedAt: '2024-02-08T00:00:00Z',
-  },
-  {
-    _id: '29', name: 'MOXOM MX-SK18 Portable Wireless Bluetooth Subwoofer Speaker', slug: 'moxom-mx-sk18-portable-bluetooth-speaker',
-    description: 'Premium cylindrical Bluetooth speaker with dual passive radiators for deep low-end bass and 360-degree acoustic dispersion.',
-    price: 4650, originalPrice: 5500, discount: 15,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325313/gizmorex-products/nblphavryeotmiwo64oj.jpg'],
-    category: 'audio', brand: 'MOXOM', stock: 18, sold: 76,
-    rating: 4.7, numReviews: 39, isFeatured: false, isFlashDeal: false, isNew: false, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['Dual Passive Subwoofer Radiators', 'Fabric Mesh Protective Casing', 'Bluetooth 5.0 Wireless Audio', 'Supports Aux-in & TF Card', 'Clear Voice Calling'],
-    specifications: { 'Power': '10W Output', 'Battery': '1800mAh', 'Playtime': '6-8 Hours', 'Frequency': '80Hz - 20kHz', 'Weight': '520g' },
-    tags: ['moxom', 'speaker', 'subwoofer', 'wireless'], createdAt: '2024-01-28T00:00:00Z', updatedAt: '2024-01-28T00:00:00Z',
-  },
-  {
-    _id: '30', name: 'Aibimy MY262BT Rugged Waterproof Bluetooth Speaker (15W Output)', slug: 'aibimy-my262bt-waterproof-bluetooth-speaker',
-    description: 'High-power 15W outdoor portable speaker with rugged shockproof rubber bumpers, IPX6 water resistance, and rich room-filling acoustic volume.',
-    price: 6750, originalPrice: 7750, discount: 13,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325312/gizmorex-products/yojyq4bifk6ioch7ghfa.jpg'],
-    category: 'audio', brand: 'Aibimy', stock: 15, sold: 55,
-    rating: 4.8, numReviews: 29, isFeatured: true, isFlashDeal: false, isNew: true, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['15W High Output Drivers', 'IPX6 Waterproof Weather Rating', 'Shock-Resistant Silicone Shell', '3000mAh Power Bank Battery', 'Includes Carry Strap'],
-    specifications: { 'Power': '15W RMS', 'Battery': '3000mAh', 'Bluetooth Range': '15 Meters', 'Playback': 'BT/USB/MicroSD/AUX' },
-    tags: ['aibimy', 'waterproof', '15w', 'heavy-duty'], createdAt: '2024-02-12T00:00:00Z', updatedAt: '2024-02-12T00:00:00Z',
-  },
-  {
-    _id: '31', name: 'Haylou Solar Neo Smartwatch with Bluetooth Calling (1.53" HD)', slug: 'haylou-solar-neo-smartwatch',
-    description: 'Make and receive phone calls directly from your wrist. Features a large 1.53-inch HD IPS display, 127 sports workout modes, and 24/7 continuous health tracking.',
-    price: 7950, originalPrice: 8500, discount: 6,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325314/gizmorex-products/xfljodemkn4nhzbgwk1l.jpg'],
-    category: 'wearables', brand: 'Haylou', stock: 25, sold: 160,
-    rating: 4.7, numReviews: 81, isFeatured: true, isFlashDeal: true, isNew: true, isActive: true,
-    flashDealEndsAt: new Date(Date.now() + 16 * 60 * 60 * 1000).toISOString(),
-    features: ['Crystal-Clear Bluetooth Calling', '1.53" HD Display (360x360)', '127 Sports Tracking Modes', 'Heart Rate & SpO2 Blood Oxygen', 'IP68 Waterproof'],
-    specifications: { 'Screen': '1.53" HD IPS', 'Battery Life': '7 Days (Typical) / 30 Days (Standby)', 'Waterproof': 'IP68', 'App': 'Haylou Fun (iOS/Android)', 'Sensors': 'Optical HR, Motion Sensor' },
-    tags: ['haylou', 'calling-watch', 'smartwatch', 'fitness'], createdAt: '2024-02-01T00:00:00Z', updatedAt: '2024-02-01T00:00:00Z',
-  },
-  {
-    _id: '32', name: 'Haylou Solar Pro Smartwatch LS18 (Military Rugged AMOLED)', slug: 'haylou-solar-pro-smartwatch-ls18',
-    description: 'Tough anti-impact zinc alloy bezel with 1.43-inch vibrant AMOLED display. Features AI voice assistant, dual-core Bluetooth chip, and 5ATM water resistance.',
-    price: 9450, originalPrice: 10500, discount: 10,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325315/gizmorex-products/shrgr5pfniomanwgqutw.jpg'],
-    category: 'wearables', brand: 'Haylou', stock: 15, sold: 112,
-    rating: 4.8, numReviews: 63, isFeatured: true, isFlashDeal: false, isNew: true, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['1.43" Vivid AMOLED Display (466x466)', 'Military Drop & Shock Resistant', 'Bluetooth Calling with AI Assistant', '100+ Watch Faces', '5ATM Waterproof'],
-    specifications: { 'Display': '1.43" AMOLED 466x466', 'Battery': '350mAh (Up to 10 Days)', 'Water Resistance': '5ATM / IP68', 'Body Material': 'Zinc Alloy Bezel' },
-    tags: ['haylou-ls18', 'amoled', 'rugged', 'smartwatch'], createdAt: '2024-02-03T00:00:00Z', updatedAt: '2024-02-03T00:00:00Z',
-  },
-  {
-    _id: '33', name: 'HAYLOU RS4 Plus Smartwatch (Retina AMOLED 60Hz Magnetic Strap)', slug: 'haylou-rs4-plus-smartwatch',
-    description: 'Ultra-smooth 60Hz Retina AMOLED square display with convenient quick-release magnetic mesh strap, 105 workout modes, and multi-UI navigation.',
-    price: 9750, originalPrice: 11000, discount: 11,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325307/gizmorex-products/t1ijtedss8fwyn7nhhso.jpg'],
-    category: 'wearables', brand: 'Haylou', stock: 19, sold: 85,
-    rating: 4.9, numReviews: 49, isFeatured: false, isFlashDeal: false, isNew: false, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['1.78" Retina AMOLED 60Hz Screen', 'Magnetic Loop Quick-Fit Strap', 'All-Day SpO2 & Stress Tracking', '105 Sports Modes', '10-Day Battery Life'],
-    specifications: { 'Display': '1.78" AMOLED 368x448 60Hz', 'Strap': 'Magnetic Loop 20mm', 'Battery': '230mAh', 'Body': 'Aluminum Alloy' },
-    tags: ['haylou-rs4-plus', 'retina-display', 'magnetic-strap'], createdAt: '2024-01-25T00:00:00Z', updatedAt: '2024-01-25T00:00:00Z',
-  },
-  {
-    _id: '34', name: 'ASPOR A335 10000mAh Ultra-Slim Power Bank (22.5W Fast Charge)', slug: 'aspor-a335-10000mah-power-bank',
-    description: 'Sleek brushed aluminum 10000mAh power bank supporting 22.5W Huawei SuperCharge and 20W USB-C Power Delivery. Equipped with an accurate digital LED percentage screen.',
-    price: 3250, originalPrice: 3750, discount: 13,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325316/gizmorex-products/befaf3zyirlkifiprhql.jpg'],
-    category: 'accessories', brand: 'Aspor', stock: 45, sold: 260,
-    rating: 4.6, numReviews: 110, isFeatured: false, isFlashDeal: true, isNew: false, isActive: true,
-    flashDealEndsAt: new Date(Date.now() + 22 * 60 * 60 * 1000).toISOString(),
-    features: ['22.5W Two-Way Quick Charge', 'LED Battery Percentage Display', 'Dual USB-A + Type-C Output', 'Ultra-Slim Pocket Body', 'Multi-Protection Smart Circuit'],
-    specifications: { 'Capacity': '10000mAh (37Wh)', 'Input': 'Type-C 18W', 'Output': 'USB-A 22.5W + Type-C 20W PD', 'Material': 'Aluminum + Fireproof ABS' },
-    tags: ['aspor', 'power-bank', 'fast-charge', '10000mah'], createdAt: '2024-01-30T00:00:00Z', updatedAt: '2024-01-30T00:00:00Z',
-  },
-  {
-    _id: '35', name: 'Aspor A313 10000mAh Magnetic Wireless Power Bank (MagSafe)', slug: 'aspor-a313-magnetic-wireless-power-bank',
-    description: 'Snaps magnetically to the back of iPhone 12/13/14/15/16 and Qi devices. Features 15W wireless charging, 20W wired PD, and a built-in foldable desk kickstand.',
-    price: 4750, originalPrice: 5500, discount: 14,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325316/gizmorex-products/befaf3zyirlkifiprhql.jpg'],
-    category: 'accessories', brand: 'Aspor', stock: 30, sold: 145,
-    rating: 4.8, numReviews: 73, isFeatured: true, isFlashDeal: false, isNew: true, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['Strong Magnetic Auto-Alignment', '15W Wireless + 20W Wired PD', 'Foldable Kickstand for Video Watching', 'Compact Camera-Friendly Design', 'Charge 2 Devices At Once'],
-    specifications: { 'Capacity': '10000mAh', 'Wireless Output': '15W/10W/7.5W', 'Wired Output': '20W Type-C PD', 'Compatibility': 'MagSafe & Qi Phones' },
-    tags: ['magsafe', 'wireless-powerbank', 'aspor', 'iphone'], createdAt: '2024-02-04T00:00:00Z', updatedAt: '2024-02-04T00:00:00Z',
-  },
-  {
-    _id: '36', name: 'Xiaomi Mi 22.5W Fast Charging Power Bank 10000mAh', slug: 'xiaomi-mi-22-5w-power-bank-10000mah',
-    description: 'Authentic Xiaomi 10000mAh power bank in premium anodized aluminum alloy casing. Supports 22.5W MAX two-way fast charging with triple simultaneous port output.',
-    price: 5950, originalPrice: 7450, discount: 20,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325317/gizmorex-products/dc3vflbwdxcuzwpgetw5.jpg'],
-    category: 'accessories', brand: 'Xiaomi', stock: 26, sold: 195,
-    rating: 4.9, numReviews: 124, isFeatured: true, isFlashDeal: false, isNew: false, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['22.5W MAX Fast Charging', 'Anodized Aluminum Alloy Shell', '3-Port Output (2x USB-A + 1x Type-C)', 'Low-Current Mode for Bands/Earbuds', '9-Layer Circuit Safety'],
-    specifications: { 'Capacity': '10000mAh 37Wh', 'Ports': 'USB-C (In/Out), 2x USB-A (Out)', 'Input': '5V/3A, 9V/2.5A', 'Weight': '225g' },
-    tags: ['xiaomi', 'mi-powerbank', 'fast-charging', 'original'], createdAt: '2024-01-18T00:00:00Z', updatedAt: '2024-01-18T00:00:00Z',
-  },
-  {
-    _id: '37', name: 'Aspor A318 40000mAh Massive Fast Charging Power Bank with LED Torch', slug: 'aspor-a318-40000mah-power-bank',
-    description: 'Heavyweight 40000mAh battery backup designed for long outdoor trips and power outages. Delivers 22.5W fast charging, 4 output ports, and a high-lumen emergency LED camping light.',
-    price: 7750, originalPrice: 9500, discount: 18,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325318/gizmorex-products/mkpgeotvhoqca78t0pac.jpg'],
-    category: 'accessories', brand: 'Aspor', stock: 15, sold: 82,
-    rating: 4.8, numReviews: 54, isFeatured: false, isFlashDeal: true, isNew: true, isActive: true,
-    flashDealEndsAt: new Date(Date.now() + 15 * 60 * 60 * 1000).toISOString(),
-    features: ['Massive 40000mAh (148Wh) Battery', 'Built-in Super Bright LED Floodlight', '4 Output Ports for Whole Family', '22.5W Two-Way Fast Charge', 'LED Battery Meter'],
-    specifications: { 'Capacity': '40000mAh (148Wh)', 'Fast Charge Protocols': 'PD 20W, QC 3.0, SCP 22.5W', 'Outputs': '3x USB-A + 1x Type-C', 'Inputs': 'Type-C + Micro-USB' },
-    tags: ['40000mah', 'heavy-capacity', 'camping', 'aspor'], createdAt: '2024-02-09T00:00:00Z', updatedAt: '2024-02-09T00:00:00Z',
-  },
-  {
-    _id: '38', name: 'UGREEN 20W Type-C & USB-A Fast Wall Charger (UK 3-Pin)', slug: 'ugreen-20w-fast-charger-uk-pin',
-    description: 'Certified Sri Lanka/UK 3-pin compact GaN wall charger. Charges iPhone 15/16 from 0 to 60% in 30 minutes with intelligent temperature protection.',
-    price: 3750, originalPrice: 4750, discount: 21,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325316/gizmorex-products/befaf3zyirlkifiprhql.jpg'],
-    category: 'accessories', brand: 'UGREEN', stock: 35, sold: 175,
-    rating: 4.9, numReviews: 92, isFeatured: true, isFlashDeal: false, isNew: false, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['Official UK 3-Pin Square Plug', 'Dual Ports (USB-C PD + USB-A QC)', 'GaN III Cool Charging Technology', 'Universal iPhone & Android Compatibility', 'Fire-Retardant Shell'],
-    specifications: { 'Total Output': '20W Max', 'USB-C Output': '5V/3A, 9V/2.22A, 12V/1.67A', 'USB-A Output': '5V/3A, 9V/2A, 12V/1.5A', 'Plug': 'UK 3-Pin Standard' },
-    tags: ['ugreen', 'charger', 'fast-charge', '20w', 'uk-pin'], createdAt: '2024-01-24T00:00:00Z', updatedAt: '2024-01-24T00:00:00Z',
-  },
-  {
-    _id: '39', name: '120W Super Fast Charger Kit with 6A Type-C Cable (C Max MX-002)', slug: '120w-super-fast-charger-kit',
-    description: 'Ultra-fast 120W charger adapter with heavy duty 6A liquid silicone charging cable. Powers compatible Xiaomi, Oppo, and Vivo devices at maximum flash speed.',
-    price: 1850, originalPrice: 2750, discount: 33,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325317/gizmorex-products/dc3vflbwdxcuzwpgetw5.jpg'],
-    category: 'accessories', brand: 'C Max', stock: 40, sold: 220,
-    rating: 4.6, numReviews: 87, isFeatured: false, isFlashDeal: true, isNew: false, isActive: true,
-    flashDealEndsAt: new Date(Date.now() + 11 * 60 * 60 * 1000).toISOString(),
-    features: ['120W Maximum Flash Output', 'Tangle-Free 6A Silicone Cable Included', 'Trickle Safe Charging Protection', 'Standard UK Plug', 'Wide Voltage 100-240V'],
-    specifications: { 'Max Power': '120W', 'Cable Length': '1.2 Meters', 'Cable Current': '6A High Speed', 'Plug': 'UK 3-Pin' },
-    tags: ['120w', 'fast-charger', 'cable-bundle', 'supercharge'], createdAt: '2024-02-02T00:00:00Z', updatedAt: '2024-02-02T00:00:00Z',
-  },
-  {
-    _id: '40', name: 'Meetion C2000 Dual-Mode Wireless Rechargeable Keyboard & Mouse Combo', slug: 'meetion-c2000-wireless-keyboard-mouse-combo',
-    description: 'Dual-mode connection via Bluetooth 5.0 and 2.4GHz USB wireless dongle. Built-in rechargeable batteries mean no more replacing AA batteries.',
-    price: 6950, originalPrice: 8000, discount: 13,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325318/gizmorex-products/dgobrhwiesxjp3thinv8.jpg'],
-    category: 'gaming', brand: 'Meetion', stock: 18, sold: 68,
-    rating: 4.7, numReviews: 38, isFeatured: true, isFlashDeal: false, isNew: true, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['Dual-Mode (Bluetooth + 2.4G Wireless)', 'Type-C Rechargeable (No AA Batteries)', 'Whisper Quiet Scissor Keycaps', '3-Level Mouse DPI (800-1200-1600)', 'Slim Ergonomic Incline'],
-    specifications: { 'Wireless Range': '10 Meters', 'Battery': 'Rechargeable Lithium', 'Charging': 'USB-C Cable Included', 'OS': 'Windows/Mac/Android/iOS' },
-    tags: ['meetion', 'keyboard-mouse-combo', 'rechargeable', 'dual-mode'], createdAt: '2024-02-11T00:00:00Z', updatedAt: '2024-02-11T00:00:00Z',
-  },
-  {
-    _id: '41', name: 'UGREEN Wireless Silent Keyboard & Mouse Combo (MK006)', slug: 'ugreen-mk006-wireless-keyboard-mouse-combo',
-    description: 'Full-sized 104-key membrane keyboard with silent optical mouse. 99% noise reduction lets you work peacefully in offices, bedrooms, and libraries.',
-    price: 7950, originalPrice: 9500, discount: 16,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325319/gizmorex-products/mwy9vojqze9v9z2fpmat.jpg'],
-    category: 'accessories', brand: 'UGREEN', stock: 14, sold: 54,
-    rating: 4.8, numReviews: 31, isFeatured: false, isFlashDeal: false, isNew: false, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['99% Ultra-Quiet Click & Typing', 'Full Size 104 Keys with NumPad', '4-Level 4000 DPI Precision Mouse', 'Smart Auto-Sleep Power Saving', '10m Stable 2.4G Connection'],
-    specifications: { 'Model': 'UGREEN MK006', 'DPI Range': '1000/1600/2000/4000', 'Connection': '2.4GHz Nano Receiver', 'Key Life': '10 Million Clicks' },
-    tags: ['ugreen', 'silent-keyboard', 'office', 'peripherals'], createdAt: '2024-02-07T00:00:00Z', updatedAt: '2024-02-07T00:00:00Z',
-  },
-  {
-    _id: '42', name: '10-Inch LED Ring Light with 2.1m Heavy-Duty Metal Tripod Stand Combo', slug: '10-inch-led-ring-light-with-tripod-stand',
-    description: 'The classic content creator ring light setup. 3 color temperatures with 10 brightness increments, 360-degree ballhead, and a full 2.1-meter telescopic tripod.',
-    price: 2490, originalPrice: 4500, discount: 45,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325303/gizmorex-products/yhzgmuhwyoxfy4kvtrez.jpg'],
-    category: 'cameras', brand: 'Plokama', stock: 45, sold: 290,
-    rating: 4.7, numReviews: 145, isFeatured: true, isFlashDeal: true, isNew: false, isActive: true,
-    flashDealEndsAt: new Date(Date.now() + 23 * 60 * 60 * 1000).toISOString(),
-    features: ['3 Light Modes (Warm, Natural, Cold White)', '10 Dimming Levels', '2.1 Meter Telescopic Metal Stand', '360° Rotatable Phone Mount', 'USB 5V Powered'],
-    specifications: { 'Ring Diameter': '10 Inch / 26cm', 'Stand Height': '68cm to 210cm', 'Power': 'USB 12W', 'Phone Holder Width': 'Up to 3.8 inches' },
-    tags: ['ring-light', 'tripod', 'tiktok', 'vlogging', 'lighting'], createdAt: '2024-01-26T00:00:00Z', updatedAt: '2024-01-26T00:00:00Z',
-  },
-  {
-    _id: '43', name: 'PK-460 18-Inch Professional Studio LED Ring Light with Triple Phone Holders', slug: 'pk-460-18-inch-studio-ring-light',
-    description: 'Large 18-inch high-output ring light with 3 flexible phone holders for simultaneous broadcasting across TikTok, YouTube, and Facebook. Includes wireless remote.',
-    price: 5450, originalPrice: 6750, discount: 19,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325320/gizmorex-products/roszbtqn2g82wodwoaxs.jpg'],
-    category: 'cameras', brand: 'PK', stock: 20, sold: 95,
-    rating: 4.8, numReviews: 56, isFeatured: true, isFlashDeal: false, isNew: true, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['Large 18" Soft Diffusion Ring', '3 Phone Brackets for Multi-Streaming', 'Dual Stepless Dials + IR Remote', 'High Color Rendering Index (CRI >90)', '2M Sturdy Light Stand Included'],
-    specifications: { 'Diameter': '18 Inch / 45cm', 'Power': '55W AC Powered', 'Color Temp': '3200K - 5600K', 'USB Output': '5V 2A for Phone Charging' },
-    tags: ['18-inch', 'studio-light', 'live-streaming', 'beautician'], createdAt: '2024-02-14T00:00:00Z', updatedAt: '2024-02-14T00:00:00Z',
-  },
-  {
-    _id: '44', name: '70mai Dash Camera M310 Pro 2K Ultra HD Car Dash Cam', slug: '70mai-dash-camera-m310-pro-2k',
-    description: 'Crisp 1296P 2K QHD car dash camera with 130-degree wide angle lens, 3D DNR night vision algorithm, voice control, and 24-hour parking collision detection.',
-    price: 17950, originalPrice: 19500, discount: 8,
-    images: ['https://res.cloudinary.com/yvp0ravz/image/upload/v1795325304/gizmorex-products/ino0e3c0nupm8tlwesrb.jpg'],
-    category: 'cameras', brand: '70mai', stock: 12, sold: 62,
-    rating: 4.9, numReviews: 41, isFeatured: true, isFlashDeal: false, isNew: true, isActive: true,
-    flashDealEndsAt: undefined,
-    features: ['1296P 2K QHD Resolution', '130° Wide Field of View', 'Night Vision with 3D DNR', 'Wi-Fi App Instant Video Download', 'G-Sensor Emergency Auto-Lock'],
-    specifications: { 'Resolution': '2304x1296P 30FPS', 'Lens': 'F2.0 Aperture 130° FOV', 'Storage': 'MicroSD Class 10 up to 128GB', 'App': '70mai App (iOS/Android)' },
-    tags: ['70mai', 'dashcam', 'car-camera', 'security', '2k'], createdAt: '2024-02-17T00:00:00Z', updatedAt: '2024-02-17T00:00:00Z',
-  },
-];
-
-export const FLASH_DEAL_PRODUCTS = MOCK_PRODUCTS.filter(p => p.isFlashDeal);
-export const FEATURED_PRODUCTS = MOCK_PRODUCTS.filter(p => p.isFeatured);
-export const NEW_ARRIVALS = MOCK_PRODUCTS.filter(p => p.isNew);
-
-export function getProductsByCategory(category: string) {
+export function getProductsByCategory(category: string): Product[] {
   if (!category) return [];
   const target = category.toLowerCase().trim();
   const targetClean = target.replace(/-/g, ' ');
@@ -574,22 +64,23 @@ export function getProductsByCategory(category: string) {
   });
 }
 
-export function getProductBySlug(slug: string) {
+export function getProductBySlug(slug: string): Product | undefined {
   if (!slug) return undefined;
   const target = slug.toLowerCase().trim();
   const fromStore = getFallbackProduct(slug) || getFallbackProduct(target);
   if (fromStore) return fromStore;
-  return MOCK_PRODUCTS.find(
-    p => p.slug.toLowerCase() === target || p._id === slug
+  return getInitialFallbackProducts().find(
+    (p) => p.slug.toLowerCase() === target || p._id === slug
   );
 }
 
-export function searchProducts(query: string) {
-  const q = query.toLowerCase();
-  return MOCK_PRODUCTS.filter(p =>
-    p.name.toLowerCase().includes(q) ||
-    p.brand.toLowerCase().includes(q) ||
-    p.tags.some(t => t.includes(q))
+export function searchProducts(query: string): Product[] {
+  const q = query.toLowerCase().trim();
+  if (!q) return [];
+  return getInitialFallbackProducts().filter(
+    (p) =>
+      p.name.toLowerCase().includes(q) ||
+      p.brand.toLowerCase().includes(q) ||
+      (p.tags && p.tags.some((t) => t.toLowerCase().includes(q)))
   );
 }
-

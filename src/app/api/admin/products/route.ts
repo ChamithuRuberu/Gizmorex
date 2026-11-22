@@ -17,10 +17,10 @@ export async function GET(request: NextRequest) {
     const category = searchParams.get('category') || '';
     const status = searchParams.get('status') || ''; // active, inactive, low-stock
     
-    // Check if products collection is empty and auto-populate
+    // Check if products collection is empty and auto-populate from catalog
     const totalCountInDb = await Product.countDocuments();
     if (totalCountInDb === 0) {
-      const initialProducts = MOCK_PRODUCTS.map((p) => {
+      const initialProducts = getInitialFallbackProducts().map((p) => {
         const { _id, isNew, ...rest } = p as any;
         return {
           ...rest,
