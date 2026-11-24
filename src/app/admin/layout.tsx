@@ -11,6 +11,7 @@ import {
   ArrowLeft,
   Grid3x3,
   Star,
+  LogOut,
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -107,7 +108,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
         </nav>
 
-        <div className="p-4 border-t border-dark-400">
+        <div className="p-4 border-t border-dark-400 space-y-3">
+          <button
+            type="button"
+            onClick={async () => {
+              await fetch('/api/admin-auth', { method: 'DELETE' });
+              window.location.href = '/admin-login';
+            }}
+            className="flex items-center gap-2 text-xs text-gray-400 hover:text-primary transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Log out
+          </button>
           <Link
             href="/"
             className="flex items-center gap-2 text-xs text-gray-400 hover:text-primary transition-colors"

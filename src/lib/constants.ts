@@ -6,9 +6,9 @@ export const BRAND = {
   primaryColor: '#FF6B00',
   darkColor: '#3D3D3D',
   email: 'support@gizmorex.lk',
-  phone: '+94 11 234 5678',
-  whatsapp: '+94 71 234 5678',
-  address: '123 Tech Street, Colombo 03, Sri Lanka',
+  phone: '+94 74 339 8271',
+  whatsapp: '+94 74 339 8271',
+  address: 'Piliyandala, Sri Lanka',
 };
 
 // Categories

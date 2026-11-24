@@ -73,8 +73,8 @@ export interface Order {
   user: string | User;
   items: OrderItem[];
   shippingAddress: Address;
-  paymentMethod: 'cod' | 'card' | 'bank';
-  paymentStatus: 'pending' | 'paid' | 'failed';
+  paymentMethod: 'cod' | 'directpay' | 'bank';
+  paymentStatus: 'pending' | 'paid' | 'failed' | 'cancelled';
   orderStatus: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   subtotal: number;
   shippingCost: number;
