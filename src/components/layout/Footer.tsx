@@ -69,7 +69,7 @@ export default function Footer() {
             <h4 className="text-white font-semibold mb-4 text-sm uppercase tracking-wider">Categories</h4>
             <ul className="space-y-2">
               {categories.slice(0, 8).map(cat => (
-                <li key={cat.id || cat.slug}>
+                <li key={cat.slug}>
                   <Link href={`/categories/${cat.slug}`} className="text-sm hover:text-primary transition-colors">
                     {cat.name}
                   </Link>

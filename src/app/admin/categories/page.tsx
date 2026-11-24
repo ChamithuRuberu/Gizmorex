@@ -30,6 +30,7 @@ interface Category {
   productCount: number;
   isActive: boolean;
   sortOrder: number;
+  parentSlug?: string | null;
 }
 
 // Preset stock photos for rapid 1-click category setup
@@ -62,6 +63,7 @@ export default function AdminCategoriesPage() {
     icon: 'Package',
     color: '#FF6B00',
     sortOrder: 0,
+    parent: '',
   });
 
   useEffect(() => {
@@ -95,19 +97,19 @@ export default function AdminCategoriesPage() {
   };
 
   const handleSeed = async () => {
-    const toastId = toast.loading('Populating default categories with photos...');
+    const toastId = toast.loading('Syncing categories...');
     try {
       const res = await fetch('/api/admin/seed', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        toast.success(data.message || 'Categories created!', { id: toastId });
+        toast.success(data.message, { id: toastId });
         await fetchCategories();
         broadcastCategoryUpdate();
       } else {
-        toast.error(data.error || 'Failed to populate', { id: toastId });
+        toast.error(data.error, { id: toastId });
       }
     } catch {
-      toast.error('Failed to populate categories', { id: toastId });
+      toast.error('Could not sync categories', { id: toastId });
     }
   };
 
@@ -212,6 +214,7 @@ export default function AdminCategoriesPage() {
       icon: category.icon || 'Package',
       color: category.color || '#FF6B00',
       sortOrder: category.sortOrder || 0,
+      parent: category.parentSlug || '',
     });
     setShowModal(true);
   };
@@ -226,6 +229,7 @@ export default function AdminCategoriesPage() {
       icon: 'Package',
       color: '#FF6B00',
       sortOrder: 0,
+      parent: '',
     });
   };
 
@@ -253,17 +257,17 @@ export default function AdminCategoriesPage() {
         <div>
           <h1 className="text-2xl font-bold text-dark-300">Category Management</h1>
           <p className="text-sm text-gray-600">
-            Customize category titles, storefront photos, and product classifications ({categories.length} categories)
+            Parent categories and their sub-categories ({categories.length} total). Products are assigned to sub-categories.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={handleSeed}
             className="btn-outline text-xs py-2 px-3 flex items-center gap-1.5"
-            title="Populate 8 default tech categories with photos"
+            title="Create the standard category tree and move products off old categories"
           >
             <Sparkles className="w-3.5 h-3.5" />
-            Populate 8 Categories
+            Sync categories
           </button>
           <button
             onClick={() => {
@@ -284,10 +288,10 @@ export default function AdminCategoriesPage() {
           <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <h3 className="font-bold text-dark-300 mb-1">No categories in database</h3>
           <p className="text-xs text-gray-400 mb-4">
-            Click below to populate the 8 standard categories with high-resolution photos into your database.
+            Click below to create the standard category tree (parents and sub-categories).
           </p>
           <button onClick={handleSeed} className="btn-primary text-xs py-2 px-4 mx-auto inline-flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" /> Populate 8 Categories
+            <Sparkles className="w-3.5 h-3.5" /> Sync categories
           </button>
         </div>
       ) : (
@@ -350,6 +354,11 @@ export default function AdminCategoriesPage() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <h3 className="font-bold text-dark-300 text-base">{category.name}</h3>
+                    <p className="text-[11px] text-gray-500">
+                      {category.parentSlug
+                        ? `in ${categories.find((c) => c.slug === category.parentSlug)?.name ?? category.parentSlug}`
+                        : 'Top-level category'}
+                    </p>
                     <span
                       className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
                         category.isActive
@@ -558,6 +567,29 @@ export default function AdminCategoriesPage() {
                     required
                   />
                 </div>
+              </div>
+
+              {/* Parent */}
+              <div>
+                <label htmlFor="category-parent" className="block text-xs font-bold text-gray-700 mb-1">
+                  Parent category
+                </label>
+                <select
+                  id="category-parent"
+                  value={formData.parent}
+                  onChange={(e) => setFormData({ ...formData, parent: e.target.value })}
+                  className="input-field bg-white text-sm"
+                >
+                  <option value="">None (top-level category)</option>
+                  {categories
+                    .filter((c) => !c.parentSlug && c.slug !== editingCategory?.slug)
+                    .map((c) => (
+                      <option key={c.slug} value={c.slug}>
+                        {c.name}
+                      </option>
+                    ))}
+                </select>
+                <p className="text-[11px] text-gray-500 mt-1">Products are added to sub-categories; a parent shows all of them.</p>
               </div>
 
               {/* Description */}

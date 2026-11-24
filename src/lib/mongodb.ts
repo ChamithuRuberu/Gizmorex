@@ -1,75 +1,44 @@
 import mongoose from 'mongoose';
 import dns from 'dns';
 
-// Fix querySrv ECONNREFUSED on local ISP / router DNS
-try {
-  dns.setServers(['8.8.8.8', '1.1.1.1']);
-} catch {
-  // Ignore in environments where setting DNS servers is restricted
-}
+/**
+ * Standard Next.js + Mongoose connection: one cached connection per server
+ * instance, reused across requests and hot reloads.
+ */
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/gizmorex';
-
-interface GlobalMongoose {
-  conn: typeof mongoose | null;
-  promise: Promise<typeof mongoose> | null;
+// Some local ISP routers fail Atlas SRV lookups; use public DNS in development only.
+if (process.env.NODE_ENV !== 'production') {
+  try {
+    dns.setServers(['8.8.8.8', '1.1.1.1']);
+  } catch {
+    // not allowed in some environments; the system resolver is used instead
+  }
 }
 
 declare global {
   // eslint-disable-next-line no-var
-  var mongooseCache: GlobalMongoose;
+  var mongooseCache: { conn: typeof mongoose | null; promise: Promise<typeof mongoose> | null } | undefined;
 }
 
-let cached = global.mongooseCache;
-if (!cached) {
-  cached = global.mongooseCache = { conn: null, promise: null };
-}
+const cached = (global.mongooseCache ??= { conn: null, promise: null });
 
-let lastFailureTime = 0;
-const FAILURE_COOLDOWN_MS = 60_000; // 60s fast-fail cooldown if MongoDB Atlas is unreachable
+export default async function connectDB(): Promise<typeof mongoose> {
+  if (cached.conn) return cached.conn;
 
-async function connectDB() {
-  if (cached.conn && mongoose.connection.readyState === 1) {
-    return cached.conn;
-  }
+  const uri = process.env.MONGODB_URI;
+  if (!uri) throw new Error('MONGODB_URI is not set');
 
-  // Circuit Breaker: If recently failed (e.g. IP whitelist block), fail in 0ms so fallback data is served instantly
-  const now = Date.now();
-  if (now - lastFailureTime < FAILURE_COOLDOWN_MS) {
-    throw new Error('Database offline or IP not whitelisted (fast-fail circuit open)');
-  }
-
-  if (!cached.promise) {
-    const opts: mongoose.ConnectOptions = {
-      bufferCommands: false,
-      serverSelectionTimeoutMS: 1500, // Reduced from 4000ms to 1500ms
-      connectTimeoutMS: 1500,
-      socketTimeoutMS: 5000,
-    };
-    cached.promise = mongoose
-      .connect(MONGODB_URI, opts)
-      .then((m) => {
-        lastFailureTime = 0;
-        return m;
-      })
-      .catch((err) => {
-        lastFailureTime = Date.now();
-        cached.promise = null;
-        throw err;
-      });
-  }
+  cached.promise ??= mongoose.connect(uri, {
+    bufferCommands: false,
+    serverSelectionTimeoutMS: 8000,
+    maxPoolSize: 10,
+  });
 
   try {
     cached.conn = await cached.promise;
-    lastFailureTime = 0;
-  } catch (e) {
-    lastFailureTime = Date.now();
-    cached.conn = null;
-    cached.promise = null;
-    throw e;
+  } catch (error) {
+    cached.promise = null; // let the next request try again
+    throw error;
   }
-
   return cached.conn;
 }
-
-export default connectDB;

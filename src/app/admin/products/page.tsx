@@ -15,12 +15,12 @@ export default function AdminProductsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('');
-  const [categoriesList, setCategoriesList] = useState<string[]>([]);
+  const [categoriesList, setCategoriesList] = useState<{ slug: string; name: string; parentSlug?: string | null }[]>([]);
+  const [loadError, setLoadError] = useState('');
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
-  const [isFallback, setIsFallback] = useState(false);
-
+  
   useEffect(() => {
     fetchProducts();
   }, [page, statusFilter, categoryFilter]);
@@ -31,10 +31,10 @@ export default function AdminProductsPage() {
         const res = await fetch('/api/admin/categories');
         const data = await res.json();
         if (data.success && Array.isArray(data.data)) {
-          setCategoriesList(data.data.map((c: any) => c.name));
+          setCategoriesList(data.data);
         }
       } catch {
-        // fallback
+        // the filter just stays empty
       }
     }
     loadCategories();
@@ -55,10 +55,13 @@ export default function AdminProductsPage() {
       const data = await res.json();
       
       if (data.success) {
-        setProducts(data.data || []);
-        setTotalPages(data.pages || 1);
-        setTotalProducts(data.total || data.data?.length || 0);
-        setIsFallback(Boolean(data.isFallback));
+        setProducts(data.data);
+        setTotalPages(data.pages);
+        setTotalProducts(data.total);
+        setLoadError('');
+      } else {
+        setProducts([]);
+        setLoadError(data.error);
       }
     } catch (error) {
       toast.error('Failed to load products');
@@ -75,18 +78,18 @@ export default function AdminProductsPage() {
 
   const handleSeedDatabase = async () => {
     setSeeding(true);
-    const toastId = toast.loading('Populating sample catalog into database...');
+    const toastId = toast.loading('Syncing categories...');
     try {
       const res = await fetch('/api/admin/seed', { method: 'POST' });
       const data = await res.json();
       if (data.success) {
-        toast.success(data.message || 'Database populated!', { id: toastId });
+        toast.success(data.message, { id: toastId });
         await fetchProducts();
       } else {
-        toast.error(data.error || 'Failed to populate database', { id: toastId });
+        toast.error(data.error, { id: toastId });
       }
     } catch (err) {
-      toast.error('Something went wrong seeding the database', { id: toastId });
+      toast.error('Could not sync categories', { id: toastId });
     } finally {
       setSeeding(false);
     }
@@ -137,10 +140,10 @@ export default function AdminProductsPage() {
             onClick={handleSeedDatabase}
             disabled={seeding}
             className="btn-outline text-xs py-2 px-3 flex items-center gap-1.5"
-            title="Populate 20 electronics products & 8 categories into database"
+            title="Create missing categories and move products off old categories"
           >
             {seeding ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-            Populate Sample Catalog
+            Sync categories
           </button>
           <Link href="/admin/products/new" className="btn-primary text-xs py-2 px-4 flex items-center gap-1.5">
             <Plus className="w-4 h-4" />
@@ -149,16 +152,10 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
-      {/* Database & Cloudinary Status Banner */}
-      {isFallback && (
-        <div className="bg-amber-50/80 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 flex items-start gap-2.5">
-          <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
-          <div className="flex-1">
-            <span className="font-bold">Catalog active in local resilient store ({totalProducts} products & Cloudinary images active).</span>
-            <p className="mt-0.5 text-amber-800 leading-relaxed">
-              MongoDB Atlas returned connection alert (IP not whitelisted). To sync all {totalProducts} products to cloud MongoDB Atlas, add <code className="bg-amber-100 px-1 py-0.5 rounded font-mono font-bold">0.0.0.0/0</code> in <a href="https://cloud.mongodb.com" target="_blank" rel="noreferrer" className="underline font-bold text-primary hover:text-primary-600">MongoDB Atlas &rarr; Network Access</a>, then click &quot;Populate Sample Catalog&quot;.
-            </p>
-          </div>
+      {loadError && (
+        <div role="alert" className="bg-red-50 border border-red-200 rounded-xl p-3.5 text-sm text-red-800 flex items-start gap-2.5">
+          <AlertTriangle className="w-4 h-4 text-red-600 flex-shrink-0 mt-0.5" />
+          <span>{loadError}</span>
         </div>
       )}
 
@@ -186,8 +183,8 @@ export default function AdminProductsPage() {
             >
               <option value="">All Categories</option>
               {categoriesList.map((cat) => (
-                <option key={cat} value={cat}>
-                  {cat}
+                <option key={cat.slug} value={cat.slug}>
+                  {cat.parentSlug ? `  ${cat.name}` : cat.name}
                 </option>
               ))}
             </select>
@@ -266,7 +263,7 @@ export default function AdminProductsPage() {
                           className="btn-primary text-xs py-2 px-4 mx-auto inline-flex items-center gap-1.5"
                         >
                           <Sparkles className="w-3.5 h-3.5" />
-                          Populate 20 Sample Products
+                          Sync categories
                         </button>
                       )}
                     </div>
@@ -301,7 +298,7 @@ export default function AdminProductsPage() {
                         className="text-xs bg-orange-50 hover:bg-orange-100 text-[#FF6B00] px-2.5 py-1 rounded-full font-semibold transition-colors cursor-pointer border border-orange-100 inline-block"
                         title="Click to filter by this category"
                       >
-                        {p.category}
+                        {categoriesList.find((c) => c.slug === p.category)?.name ?? p.category}
                       </button>
                     </td>
                     <td className="px-6 py-4 font-bold text-primary">

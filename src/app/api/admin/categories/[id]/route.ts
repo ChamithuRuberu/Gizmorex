@@ -1,150 +1,72 @@
 import { NextRequest, NextResponse } from 'next/server';
+import mongoose from 'mongoose';
 import dbConnect from '@/lib/mongodb';
-import Category from '@/models/Category';
-import Product from '@/models/Product';
-import { syncCategoryProductCounts } from '@/lib/category-sync';
-import { updateFallbackCategory, deleteFallbackCategory } from '@/lib/category-store';
+import CategoryModel from '@/models/Category';
+import ProductModel from '@/models/Product';
+import { parseCategoryInput } from '@/lib/category-input';
+import { InputError } from '@/lib/product-input';
+import { revalidateStorefront } from '@/lib/revalidate';
 
-// PATCH /api/admin/categories/[id] - Update category
-export async function PATCH(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  const { id } = await context.params;
-  const body = await request.json();
+export const dynamic = 'force-dynamic';
 
-  const updateFields: any = { ...body };
-  if (updateFields.slug) {
-    updateFields.slug = updateFields.slug.toLowerCase().trim();
-  }
-  if (updateFields.name) {
-    updateFields.name = updateFields.name.trim();
-  }
+type Ctx = { params: Promise<{ id: string }> };
+const byIdOrSlug = (id: string) => (mongoose.isValidObjectId(id) ? { _id: id } : { slug: id.toLowerCase() });
 
+/** PATCH /api/admin/categories/:id — renaming a slug moves its products with it. */
+export async function PATCH(request: NextRequest, { params }: Ctx) {
+  const { id } = await params;
   try {
     await dbConnect();
+    const existing = await CategoryModel.findOne(byIdOrSlug(id));
+    if (!existing) return NextResponse.json({ success: false, error: 'Category not found' }, { status: 404 });
 
-    let category = null;
-
-    // 1. Try finding by 24-char hex MongoDB ObjectId
-    if (id && id.match(/^[0-9a-fA-F]{24}$/)) {
-      category = await Category.findByIdAndUpdate(
-        id,
-        { $set: updateFields },
-        { new: true, runValidators: true }
-      );
+    const data = await parseCategoryInput(await request.json(), { selfId: String(existing._id), partial: true });
+    const oldSlug = existing.slug;
+    if (data.slug && data.slug !== oldSlug && (await CategoryModel.exists({ slug: data.slug }))) {
+      return NextResponse.json({ success: false, error: 'Another category already uses this slug' }, { status: 409 });
     }
 
-    // 2. If not found or if id was a slug or fallback key (e.g. cat_smartphones)
-    if (!category) {
-      const cleanSlug = (updateFields.slug || id.replace(/^cat_/, '')).toLowerCase();
-      category = await Category.findOneAndUpdate(
-        {
-          $or: [
-            { slug: cleanSlug },
-            { slug: id.toLowerCase() },
-            { name: { $regex: new RegExp(`^${updateFields.name || id}$`, 'i') } },
-          ],
-        },
-        { $set: updateFields },
-        { new: true, upsert: true, runValidators: true }
-      );
+    existing.set(data);
+    await existing.save();
+    if (data.slug && data.slug !== oldSlug) {
+      await ProductModel.updateMany({ category: oldSlug }, { $set: { category: data.slug } });
     }
 
-    if (category) {
-      // Also update in-memory cache
-      updateFallbackCategory(category.slug, {
-        _id: category._id.toString(),
-        name: category.name,
-        slug: category.slug,
-        description: category.description,
-        image: category.image,
-        icon: category.icon,
-        color: category.color,
-        sortOrder: category.sortOrder,
-      });
-
-      // Refresh category product counts
-      await syncCategoryProductCounts([category.name, category.slug]);
-
-      return NextResponse.json({
-        success: true,
-        data: category,
-        message: 'Category updated successfully!',
-      });
+    revalidateStorefront();
+    return NextResponse.json({ success: true, data: { ...existing.toObject(), _id: String(existing._id) }, message: 'Category updated' });
+  } catch (error) {
+    if (error instanceof InputError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
     }
-  } catch (error: any) {
-    console.warn('PATCH Category DB notice (fallback cache used):', error.message);
+    console.error('PATCH /api/admin/categories/[id] failed', error);
+    return NextResponse.json({ success: false, error: 'Could not update the category' }, { status: 500 });
   }
-
-  // Resilient fallback update when MongoDB is unreachable / IP not whitelisted
-  const fallbackCategory = updateFallbackCategory(id, updateFields);
-
-  return NextResponse.json({
-    success: true,
-    data: fallbackCategory,
-    message: 'Category updated in local cache! (Whitelist your IP in MongoDB Atlas to persist to cloud)',
-  });
 }
 
-// DELETE /api/admin/categories/[id] - Delete category
-export async function DELETE(
-  request: NextRequest,
-  context: { params: Promise<{ id: string }> }
-) {
-  const { id } = await context.params;
-
+/** DELETE /api/admin/categories/:id — only when it has no products and no sub-categories. */
+export async function DELETE(_request: NextRequest, { params }: Ctx) {
+  const { id } = await params;
   try {
     await dbConnect();
+    const category = await CategoryModel.findOne(byIdOrSlug(id));
+    if (!category) return NextResponse.json({ success: false, error: 'Category not found' }, { status: 404 });
 
-    let category = null;
-    if (id && id.match(/^[0-9a-fA-F]{24}$/)) {
-      category = await Category.findById(id);
-    } else {
-      category = await Category.findOne({
-        $or: [
-          { slug: id.toLowerCase() },
-          { slug: id.replace(/^cat_/, '').toLowerCase() },
-          { name: { $regex: new RegExp(`^${id}$`, 'i') } },
-        ],
-      });
+    const [products, children] = await Promise.all([
+      ProductModel.countDocuments({ category: category.slug }),
+      CategoryModel.countDocuments({ parent: category._id }),
+    ]);
+    if (products || children) {
+      return NextResponse.json(
+        { success: false, error: `Move its ${products} product(s) and ${children} sub-categor${children === 1 ? 'y' : 'ies'} first` },
+        { status: 409 }
+      );
     }
 
-    if (category) {
-      // Check if category has products
-      const productCount = await Product.countDocuments({
-        $or: [
-          { category: { $regex: new RegExp(`^${category.name}$`, 'i') } },
-          { category: { $regex: new RegExp(`^${category.slug}$`, 'i') } },
-        ],
-      });
-
-      if (productCount > 0) {
-        return NextResponse.json(
-          {
-            success: false,
-            error: `Cannot delete "${category.name}" because it contains ${productCount} products. Please reassign or delete those products first.`,
-          },
-          { status: 400 }
-        );
-      }
-
-      await Category.findByIdAndDelete(category._id);
-      deleteFallbackCategory(id);
-
-      return NextResponse.json({
-        success: true,
-        message: 'Category deleted successfully!',
-      });
-    }
-  } catch (error: any) {
-    console.warn('DELETE Category DB notice (fallback cache used):', error.message);
+    await category.deleteOne();
+    revalidateStorefront();
+    return NextResponse.json({ success: true, message: 'Category deleted' });
+  } catch (error) {
+    console.error('DELETE /api/admin/categories/[id] failed', error);
+    return NextResponse.json({ success: false, error: 'Could not delete the category' }, { status: 500 });
   }
-
-  deleteFallbackCategory(id);
-
-  return NextResponse.json({
-    success: true,
-    message: 'Category removed successfully from local cache!',
-  });
 }

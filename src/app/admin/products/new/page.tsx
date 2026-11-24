@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { ArrowLeft, Save, Plus, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
+import CategorySelect from '@/components/admin/CategorySelect';
 import ImageUpload from '@/components/admin/ImageUpload';
 import RichTextEditor from '@/components/admin/RichTextEditor';
 
@@ -34,46 +35,8 @@ export default function NewProductPage() {
   const [specKey, setSpecKey] = useState('');
   const [specValue, setSpecValue] = useState('');
 
-  const [categories, setCategories] = useState<string[]>([
-    'Smartphones',
-    'Laptops',
-    'Audio',
-    'Gaming',
-    'Smart Home',
-    'Cameras',
-    'Accessories',
-    'Wearables',
-  ]);
-  const [isAddingCustomCategory, setIsAddingCustomCategory] = useState(false);
-  const [customCategoryInput, setCustomCategoryInput] = useState('');
 
-  useEffect(() => {
-    async function fetchCategories() {
-      try {
-        const res = await fetch('/api/admin/categories');
-        const data = await res.json();
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-          const fetchedNames = data.data.map((c: any) => c.name);
-          setCategories(prev => Array.from(new Set([...fetchedNames, ...prev])));
-        }
-      } catch (err) {
-        // use default categories
-      }
-    }
-    fetchCategories();
-  }, []);
 
-  const handleAddCustomCategory = () => {
-    const trimmed = customCategoryInput.trim();
-    if (!trimmed) return;
-    if (!categories.includes(trimmed)) {
-      setCategories(prev => [trimmed, ...prev]);
-    }
-    setFormData(prev => ({ ...prev, category: trimmed }));
-    setCustomCategoryInput('');
-    setIsAddingCustomCategory(false);
-    toast.success(`Category "${trimmed}" selected!`);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -331,64 +294,7 @@ export default function NewProductPage() {
             Category & Tags
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-semibold text-gray-700">
-                  Category *
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setIsAddingCustomCategory(!isAddingCustomCategory)}
-                  className="text-xs text-primary font-bold hover:underline flex items-center gap-1"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  {isAddingCustomCategory ? 'Choose from list' : '+ Add New Category'}
-                </button>
-              </div>
-
-              {isAddingCustomCategory ? (
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={customCategoryInput}
-                    onChange={(e) => setCustomCategoryInput(e.target.value)}
-                    placeholder="e.g. Tablets, Drones, Monitors"
-                    className="input-field flex-1"
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddCustomCategory}
-                    className="btn-primary text-xs px-3 py-2 flex items-center gap-1"
-                  >
-                    <Check className="w-3.5 h-3.5" /> Add
-                  </button>
-                </div>
-              ) : (
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="input-field bg-white"
-                  required
-                >
-                  <option value="">Select category</option>
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              )}
-
-              {formData.category && (
-                <p className="text-[11px] text-green-600 font-medium mt-1.5 flex items-center gap-1">
-                  ✓ Visible on storefront at:{' '}
-                  <span className="font-mono text-dark-300 bg-gray-100 px-1.5 py-0.5 rounded">
-                    /categories/{formData.category.toLowerCase().replace(/[^a-z0-9]+/g, '-')}
-                  </span>
-                </p>
-              )}
-            </div>
+            <CategorySelect value={formData.category} onChange={(category) => setFormData({ ...formData, category })} />
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">

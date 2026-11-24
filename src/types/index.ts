@@ -36,6 +36,11 @@ export interface Category {
   bg?: string;
   productCount: number;
   isActive: boolean;
+  sortOrder?: number;
+  /** Parent category slug, null for a top-level category. */
+  parentSlug?: string | null;
+  /** Sub-categories (only on top-level categories in a tree response). */
+  children?: Category[];
 }
 
 export interface User {

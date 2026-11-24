@@ -16,6 +16,7 @@ import {
   Image as ImageIcon,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
+import CategorySelect from '@/components/admin/CategorySelect';
 import ImageUpload from '@/components/admin/ImageUpload';
 import RichTextEditor from '@/components/admin/RichTextEditor';
 
@@ -52,37 +53,8 @@ export default function EditProductPage() {
   const [specKey, setSpecKey] = useState('');
   const [specValue, setSpecValue] = useState('');
 
-  const [categories, setCategories] = useState<string[]>([
-    'Smartphones',
-    'Laptops',
-    'Audio',
-    'Gaming',
-    'Smart Home',
-    'Cameras',
-    'Accessories',
-    'Wearables',
-  ]);
-  const [isAddingCustomCategory, setIsAddingCustomCategory] = useState(false);
-  const [customCategoryInput, setCustomCategoryInput] = useState('');
 
-  // 1. Fetch categories
-  useEffect(() => {
-    async function fetchCategories() {
-      try {
-        const res = await fetch('/api/admin/categories');
-        const data = await res.json();
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-          const fetchedNames = data.data.map((c: any) => c.name);
-          setCategories(prev => Array.from(new Set([...fetchedNames, ...prev])));
-        }
-      } catch (err) {
-        console.warn('Could not fetch categories, using defaults:', err);
-      }
-    }
-    fetchCategories();
-  }, []);
-
-  // 2. Fetch existing product data
+  // Load the product
   useEffect(() => {
     async function fetchProduct() {
       if (!productId) return;
@@ -135,10 +107,6 @@ export default function EditProductPage() {
             flashDealEndsAt: flashEnds,
           });
 
-          // Ensure product's category exists in categories dropdown list
-          if (p.category) {
-            setCategories(prev => Array.from(new Set([p.category, ...prev])));
-          }
         } else {
           toast.error(data.error || 'Product not found');
         }
@@ -153,17 +121,6 @@ export default function EditProductPage() {
     fetchProduct();
   }, [productId]);
 
-  const handleAddCustomCategory = () => {
-    const trimmed = customCategoryInput.trim();
-    if (!trimmed) return;
-    if (!categories.includes(trimmed)) {
-      setCategories(prev => [trimmed, ...prev]);
-    }
-    setFormData(prev => ({ ...prev, category: trimmed }));
-    setCustomCategoryInput('');
-    setIsAddingCustomCategory(false);
-    toast.success(`Category "${trimmed}" assigned!`);
-  };
 
   const handleAddDirectImageUrl = () => {
     const trimmed = directImageUrl.trim();
@@ -597,71 +554,7 @@ export default function EditProductPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <div className="flex items-center justify-between mb-1">
-                <label className="block text-sm font-semibold text-gray-700">
-                  Category *
-                </label>
-                <button
-                  type="button"
-                  onClick={() => setIsAddingCustomCategory(!isAddingCustomCategory)}
-                  className="text-xs text-primary font-bold hover:underline flex items-center gap-1"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  {isAddingCustomCategory ? 'Choose from list' : '+ Add New Category'}
-                </button>
-              </div>
-
-              {isAddingCustomCategory ? (
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={customCategoryInput}
-                    onChange={(e) => setCustomCategoryInput(e.target.value)}
-                    placeholder="e.g. Tablets, Drones, Audio"
-                    className="input-field flex-1"
-                    autoFocus
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAddCustomCategory}
-                    className="btn-primary text-xs px-3 py-2 flex items-center gap-1"
-                  >
-                    <Check className="w-3.5 h-3.5" /> Assign
-                  </button>
-                </div>
-              ) : (
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="input-field bg-white font-medium"
-                  required
-                >
-                  <option value="">Select target category</option>
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              )}
-
-              {formData.category && (
-                <div className="mt-2 p-2.5 bg-orange-50/50 rounded-xl border border-orange-100 text-xs flex items-center justify-between">
-                  <span className="text-gray-600">
-                    Category Storefront Link:
-                  </span>
-                  <Link
-                    href={`/categories/${formData.category.toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}
-                    target="_blank"
-                    className="font-mono text-primary font-bold hover:underline flex items-center gap-1"
-                  >
-                    /categories/{formData.category.toLowerCase().replace(/[^a-z0-9]+/g, '-')}
-                    <ExternalLink className="w-3 h-3" />
-                  </Link>
-                </div>
-              )}
-            </div>
+            <CategorySelect value={formData.category} onChange={(category) => setFormData({ ...formData, category })} />
 
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-1">
