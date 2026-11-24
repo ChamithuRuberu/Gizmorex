@@ -53,15 +53,9 @@ export default function HomeHero({ categories, banners }: { categories: Category
         <div className="lg:col-span-9 relative rounded-2xl overflow-hidden min-h-[220px] sm:min-h-[340px] bg-dark-500">
           {slide ? (
             <>
-              <Image src={slide.image} alt="" fill priority className="object-cover" sizes="(max-width: 1024px) 100vw, 900px" />
-              <div className="absolute inset-0 bg-gradient-to-r from-black/70 via-black/30 to-transparent" />
-              <div className="relative h-full flex flex-col justify-center gap-3 p-6 sm:p-10 max-w-lg text-white min-h-[220px] sm:min-h-[340px]">
-                <h2 className="text-2xl sm:text-4xl font-black leading-tight">{slide.title}</h2>
-                {slide.subtitle && <p className="text-sm sm:text-base text-white/85">{slide.subtitle}</p>}
-                <Link href={slide.link} className="btn-primary w-fit">
-                  {slide.buttonText}
-                </Link>
-              </div>
+              <Link href={slide.link || '/products'} aria-label={slide.title} className="absolute inset-0 block">
+                <Image src={slide.image} alt={slide.title} fill priority className="object-cover" sizes="(max-width: 1024px) 100vw, 900px" />
+              </Link>
               {count > 1 && (
                 <>
                   <button type="button" onClick={() => go(-1)} aria-label="Previous banner" className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/80 flex items-center justify-center">
