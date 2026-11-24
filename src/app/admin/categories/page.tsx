@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { broadcastCategoryUpdate } from '@/store/categoryStore';
+import CategoryIcon from '@/components/ui/CategoryIcon';
 
 interface Category {
   _id: string;
@@ -291,7 +292,7 @@ export default function AdminCategoriesPage() {
         <div>
           <h1 className="text-2xl font-bold text-dark-300">Category Management</h1>
           <p className="text-sm text-gray-600">
-            Parent categories and their sub-categories ({categories.length} total). Products are assigned to sub-categories.
+            {categories.filter((c) => !c.parentSlug).length} main categories, {categories.filter((c) => c.parentSlug).length} sub-categories. Products belong to a sub-category.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -331,122 +332,55 @@ export default function AdminCategoriesPage() {
         </div>
       )}
 
-      {/* Categories Grid */}
+      {/* Categories, grouped: each top-level category with its sub-categories */}
       {categories.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center text-gray-500 border border-gray-100 max-w-md mx-auto">
           <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <h3 className="font-bold text-dark-300 mb-1">No categories in database</h3>
-          <p className="text-xs text-gray-400 mb-4">
-            Add a category with the button above, or import the catalog with <code>npm run import:ido</code>.
+          <h3 className="font-bold text-dark-300 mb-1">No categories yet</h3>
+          <p className="text-xs text-gray-400">
+            Add one with the button above, or import the catalog with <code>npm run import:ido</code>.
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {categories.map((category) => (
-            <div
-              key={category._id}
-              className="bg-white rounded-2xl border border-gray-100 shadow-card hover:shadow-lg transition-all overflow-hidden flex flex-col group"
-            >
-              {/* Category Photo Header */}
-              <div className="relative w-full h-40 bg-gray-100 overflow-hidden">
-                {category.image ? (
-                  <Image
-                    src={category.image}
-                    alt={category.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    sizes="(max-width: 768px) 100vw, 300px"
+        <div className="space-y-4">
+          {categories
+            .filter((c) => !c.parentSlug)
+            .map((parent) => {
+              const subs = categories.filter((c) => c.parentSlug === parent.slug);
+              return (
+                <section key={parent._id} className="bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden">
+                  <CategoryRow
+                    category={parent}
+                    isParent
+                    subCount={subs.length}
+                    selected={selected.has(parent._id)}
+                    onToggle={() => toggleOne(parent._id)}
+                    onEdit={() => openEditModal(parent)}
+                    onDelete={() => handleDelete(parent._id, parent.name)}
+                    onAddSub={() => {
+                      resetForm();
+                      setFormData((f) => ({ ...f, parent: parent.slug }));
+                      setShowModal(true);
+                    }}
                   />
-                ) : (
-                  <div
-                    className="w-full h-full flex flex-col items-center justify-center p-4 text-center"
-                    style={{ backgroundColor: `${category.color || '#FF6B00'}15` }}
-                  >
-                    <ImageIcon className="w-10 h-10 mb-1 text-gray-400" />
-                    <span className="text-xs text-gray-500">No Photo Uploaded</span>
-                    <button
-                      onClick={() => openEditModal(category)}
-                      className="text-[11px] text-primary font-bold hover:underline mt-1"
-                    >
-                      + Add Photo
-                    </button>
-                  </div>
-                )}
-                {/* Select + Product Count */}
-                <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
-                  <input
-                    type="checkbox"
-                    checked={selected.has(category._id)}
-                    onChange={() => toggleOne(category._id)}
-                    aria-label={`Select ${category.name}`}
-                    className="w-4 h-4 accent-[#FF6B00] cursor-pointer"
-                  />
-                  <span className="bg-black/60 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">
-                    {category.productCount || 0} Products
-                  </span>
-                </div>
-                {/* Actions Pill */}
-                <div className="absolute top-2.5 right-2.5 flex items-center gap-1 bg-white/90 backdrop-blur-md p-1 rounded-lg shadow-sm">
-                  <button
-                    onClick={() => openEditModal(category)}
-                    className="p-1 hover:bg-orange-50 hover:text-primary rounded text-gray-600 transition-colors"
-                    title="Edit Category & Photo"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(category._id, category.name)}
-                    className="p-1 hover:bg-red-50 hover:text-red-600 rounded text-gray-400 transition-colors"
-                    title="Delete Category"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Category Content */}
-              <div className="p-4 flex-1 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-bold text-dark-300 text-base">{category.name}</h3>
-                    <p className="text-[11px] text-gray-500">
-                      {category.parentSlug
-                        ? `in ${categories.find((c) => c.slug === category.parentSlug)?.name ?? category.parentSlug}`
-                        : 'Top-level category'}
-                    </p>
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                        category.isActive
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}
-                    >
-                      {category.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-500 line-clamp-2 mb-3">
-                    {category.description || 'Browse high-quality electronics in this category.'}
-                  </p>
-                </div>
-
-                <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
-                  <Link
-                    href={`/categories/${category.slug}`}
-                    target="_blank"
-                    className="text-primary hover:underline font-semibold flex items-center gap-1 text-[11px]"
-                  >
-                    View in Store <ExternalLink className="w-3 h-3" />
-                  </Link>
-                  <button
-                    onClick={() => openEditModal(category)}
-                    className="btn-outline text-[11px] py-1 px-2.5"
-                  >
-                    Edit Photo & Info
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+                  {subs.length > 0 && (
+                    <ul className="divide-y divide-gray-50 border-t border-gray-100">
+                      {subs.map((sub) => (
+                        <li key={sub._id}>
+                          <CategoryRow
+                            category={sub}
+                            selected={selected.has(sub._id)}
+                            onToggle={() => toggleOne(sub._id)}
+                            onEdit={() => openEditModal(sub)}
+                            onDelete={() => handleDelete(sub._id, sub.name)}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              );
+            })}
         </div>
       )}
 
@@ -736,6 +670,109 @@ export default function AdminCategoriesPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function CategoryRow({
+  category,
+  isParent = false,
+  subCount = 0,
+  selected,
+  onToggle,
+  onEdit,
+  onDelete,
+  onAddSub,
+}: {
+  category: Category;
+  isParent?: boolean;
+  subCount?: number;
+  selected: boolean;
+  onToggle: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onAddSub?: () => void;
+}) {
+  return (
+    <div
+      className={`flex items-center gap-3 sm:gap-4 ${isParent ? 'px-4 sm:px-5 py-4 bg-gray-50/60' : 'pl-10 sm:pl-14 pr-4 sm:pr-5 py-3'} ${
+        selected ? '!bg-orange-50' : 'hover:bg-gray-50'
+      }`}
+    >
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={onToggle}
+        aria-label={`Select ${category.name}`}
+        className="w-4 h-4 accent-[#FF6B00] cursor-pointer flex-shrink-0"
+      />
+      <button
+        type="button"
+        onClick={onEdit}
+        title="Change photo"
+        className={`relative flex-shrink-0 rounded-xl overflow-hidden border border-gray-100 bg-orange-50 flex items-center justify-center ${
+          isParent ? 'w-12 h-12' : 'w-10 h-10'
+        }`}
+      >
+        {category.image ? (
+          <Image src={category.image} alt="" fill className="object-cover" sizes="48px" />
+        ) : (
+          <CategoryIcon name={category.icon} label={category.name} className={`${isParent ? 'w-6 h-6' : 'w-5 h-5'} text-primary`} />
+        )}
+      </button>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`${isParent ? 'text-base font-black' : 'text-sm font-semibold'} text-dark-300 truncate`}>{category.name}</span>
+          {!category.isActive && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-gray-200 text-gray-600">Hidden</span>
+          )}
+        </div>
+        <p className="text-xs text-gray-500 mt-0.5">
+          {category.productCount} product{category.productCount === 1 ? '' : 's'}
+          {isParent && ` · ${subCount} sub-categor${subCount === 1 ? 'y' : 'ies'}`}
+          <span className="hidden sm:inline text-gray-300"> · /{category.slug}</span>
+        </p>
+      </div>
+
+      <div className="flex items-center gap-1 flex-shrink-0">
+        {onAddSub && (
+          <button
+            type="button"
+            onClick={onAddSub}
+            className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold text-gray-600 hover:text-primary hover:bg-orange-50 px-2.5 py-1.5 rounded-lg"
+          >
+            <Plus className="w-3.5 h-3.5" /> Sub-category
+          </button>
+        )}
+        <Link
+          href={`/categories/${category.slug}`}
+          target="_blank"
+          className="p-2 rounded-lg text-gray-400 hover:text-primary hover:bg-orange-50"
+          title="View in store"
+          aria-label={`View ${category.name} in store`}
+        >
+          <ExternalLink className="w-4 h-4" />
+        </Link>
+        <button
+          type="button"
+          onClick={onEdit}
+          className="p-2 rounded-lg text-gray-500 hover:text-primary hover:bg-orange-50"
+          title="Edit"
+          aria-label={`Edit ${category.name}`}
+        >
+          <Edit2 className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
+          title="Delete"
+          aria-label={`Delete ${category.name}`}
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 }

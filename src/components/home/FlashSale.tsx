@@ -65,7 +65,7 @@ export default function FlashSale({ products = [] }: FlashSaleProps) {
     e.preventDefault();
     addItem(product, 1);
     openCart();
-    toast.success(`${product.name} added to cart!`, { icon: '🛒' });
+    toast.success('Added to cart');
   };
 
   return (
@@ -74,23 +74,25 @@ export default function FlashSale({ products = [] }: FlashSaleProps) {
         {/* Section Container */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-4 sm:p-5">
           {/* Header */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 mb-4">
+          <div className="flex items-center justify-between gap-3 pb-3 border-b border-gray-100 mb-4">
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="text-base sm:text-lg font-black text-primary uppercase tracking-tight flex items-center gap-1.5">
                 <Zap className="w-5 h-5 fill-primary text-primary" />
                 Flash Sale
               </h2>
-              <span className="text-xs font-semibold text-gray-500">
-                Ending in
-              </span>
-              {firstEndsAt && <Countdown endsAt={firstEndsAt} />}
+              {firstEndsAt && (
+                <>
+                  <span className="text-xs font-semibold text-gray-500">Ending in</span>
+                  <Countdown endsAt={firstEndsAt} />
+                </>
+              )}
             </div>
 
             <Link
               href="/products?deals=true"
-              className="text-xs font-bold text-primary hover:text-orange-600 border border-primary/40 hover:border-primary px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all"
+              className="flex-shrink-0 text-xs font-bold text-primary hover:text-orange-600 border border-primary/40 hover:border-primary px-3 py-1.5 rounded-lg flex items-center gap-1 transition-all"
             >
-              SHOP MORE <ChevronRight className="w-3.5 h-3.5" />
+              View all <ChevronRight className="w-3.5 h-3.5" />
             </Link>
           </div>
 
@@ -115,12 +117,12 @@ export default function FlashSale({ products = [] }: FlashSaleProps) {
                   className="group bg-white rounded-xl border border-gray-100 hover:border-primary/40 hover:shadow-card transition-all duration-300 flex flex-col justify-between overflow-hidden relative"
                 >
                   {/* Image Container */}
-                  <Link href={`/products/${product.slug}`} className="block relative aspect-square bg-gray-50 overflow-hidden">
+                  <Link href={`/products/${product.slug}`} className="block relative aspect-square bg-white overflow-hidden">
                     <Image
                       src={product.images[0] || 'https://placehold.co/300x300'}
                       alt={product.name}
                       fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
                       sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 16vw"
                     />
 
