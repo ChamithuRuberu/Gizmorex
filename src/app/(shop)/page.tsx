@@ -23,7 +23,7 @@ export default async function HomePage() {
       <HomeHero categories={data.categories} banners={data.banners} />
       <TrustBar />
       <FlashSale products={data.flashDeals} />
-      <PromoBand maxDiscount={data.maxDiscount} />
+      <PromoBand maxDiscount={data.maxDiscount} promoBanners={data.promoBanners} />
       <CategoryRows rows={data.rows} />
       <JustForYou products={forYou} categories={data.categories} />
       <BrandStrip brands={data.brands} />

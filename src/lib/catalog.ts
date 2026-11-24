@@ -216,6 +216,7 @@ export interface HomeBanner {
   image: string;
   link: string;
   buttonText: string;
+  position?: string;
 }
 
 export interface BrandCount {
@@ -236,7 +237,7 @@ export async function getHomeData() {
     ProductModel.find({ isActive: true, isFeatured: true }).sort({ sold: -1 }).limit(12).lean(),
     ProductModel.find({ isActive: true }).sort({ createdAt: -1 }).limit(48).lean(),
     getCategoryTree(),
-    BannerModel.find({ isActive: true }).sort({ sortOrder: 1, createdAt: 1 }).limit(8).lean(),
+    BannerModel.find({ isActive: true }).sort({ sortOrder: 1, createdAt: 1 }).lean(),
     ProductModel.aggregate<{ _id: string; count: number }>([
       { $match: { isActive: true, brand: { $nin: ['', 'Generic'] } } },
       { $group: { _id: '$brand', count: { $sum: 1 } } },
@@ -268,6 +269,24 @@ export async function getHomeData() {
     )
   ).filter((r) => r.products.length > 0);
 
+  const allBanners = banners as any[];
+  const heroBanners = allBanners.filter((b) => !b.position || b.position === 'hero').slice(0, 8);
+  const promo1 = allBanners.find((b) => b.position === 'promo-1');
+  const promo2 = allBanners.find((b) => b.position === 'promo-2');
+  const genericPromos = allBanners.filter((b) => b.position === 'promo');
+  const promoLeft = promo1 || genericPromos[0];
+  const promoRight = promo2 || (genericPromos[0] && genericPromos[0] !== promoLeft ? genericPromos[0] : genericPromos[1]);
+
+  const toHomeBanner = (b: any): HomeBanner => ({
+    _id: String(b._id),
+    title: b.title,
+    subtitle: b.subtitle || '',
+    image: b.image,
+    link: b.link || '/products',
+    buttonText: b.buttonText || 'Shop now',
+    position: b.position || 'hero',
+  });
+
   return {
     flashDeals: flash.map(toProduct),
     featured: featured.map(toProduct),
@@ -275,14 +294,11 @@ export async function getHomeData() {
     categories: tree, // every active category, even before it has products
     rows,
     maxDiscount: Math.floor(topDiscount[0]?.pct ?? 0),
-    banners: banners.map((b): HomeBanner => ({
-      _id: String(b._id),
-      title: b.title,
-      subtitle: b.subtitle,
-      image: b.image,
-      link: b.link,
-      buttonText: b.buttonText,
-    })),
+    banners: heroBanners.map(toHomeBanner),
+    promoBanners: {
+      left: promoLeft ? toHomeBanner(promoLeft) : undefined,
+      right: promoRight ? toHomeBanner(promoRight) : undefined,
+    },
     brands: await withBrandSettings(brands),
   };
 }

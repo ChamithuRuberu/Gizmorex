@@ -79,15 +79,50 @@ export default function CheckoutPage() {
         const dp = new window.DirectPayIpg.Init({
           signature: directpay.signature,
           dataString: directpay.dataString,
-          stage: directpay.stage,
+          stage: directpay.stage || 'DEV',
         });
-        try {
-          await dp.doInAppCheckout();
-        } catch {
-          // Closing the window or a card error still goes to the status page,
-          // which reads the real result from the server.
-        }
-        router.push(statusUrl);
+
+        dp.doInAppCheckout()
+          .then(async (result: any) => {
+            console.log('DirectPay payment result:', result);
+            const status = result?.transaction?.status?.toLowerCase();
+
+            if (status === 'success' || status === 'paid' || status === 'successful') {
+              await fetch('/api/directpay/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order_id: orderNumber, status: 'SUCCESS' }),
+              });
+              clearCart();
+              router.push(`/checkout/success?gateway=directpay&order_id=${encodeURIComponent(orderNumber)}`);
+            } else if (status === 'failed' || status === 'fail') {
+              const failureReason = result?.transaction?.message || 'Card payment declined';
+              await fetch('/api/directpay/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order_id: orderNumber, status: 'FAILED', message: failureReason }),
+              });
+              router.push(`/checkout/fail?gateway=directpay&order_id=${encodeURIComponent(orderNumber)}&reason=${encodeURIComponent(failureReason)}`);
+            } else {
+              // User closed or cancelled modal
+              await fetch('/api/directpay/status', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ order_id: orderNumber, status: 'CANCELLED' }),
+              });
+              router.push(`/checkout/cancel?gateway=directpay&order_id=${encodeURIComponent(orderNumber)}`);
+            }
+          })
+          .catch(async (error: any) => {
+            console.error('DirectPay in-app checkout error:', error);
+            const reason = error?.message || 'Payment processing was interrupted';
+            await fetch('/api/directpay/status', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ order_id: orderNumber, status: 'FAILED', message: reason }),
+            });
+            router.push(`/checkout/fail?gateway=directpay&order_id=${encodeURIComponent(orderNumber)}&reason=${encodeURIComponent(reason)}`);
+          });
         return;
       }
 

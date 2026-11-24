@@ -25,6 +25,7 @@ export function parseBannerInput(body: any, { partial = false } = {}) {
   if (!partial || has('subtitle')) out.subtitle = str(body.subtitle, 200);
   if (!partial || has('link')) out.link = safeLink(body.link);
   if (!partial || has('buttonText')) out.buttonText = str(body.buttonText, 40) || 'Shop now';
+  if (has('position')) out.position = str(body.position, 20) || 'hero';
   if (has('isActive')) out.isActive = Boolean(body.isActive);
   if (has('sortOrder')) out.sortOrder = Math.floor(Number(body.sortOrder)) || 0;
   return out;

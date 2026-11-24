@@ -1,6 +1,7 @@
 'use client';
+
 import { Suspense, useEffect, useState } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { CheckCircle2, XCircle, Clock, Loader2 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
@@ -15,19 +16,79 @@ type Status = {
   failureReason: string | null;
 };
 
-const POLL_MS = 3000;
-const MAX_POLLS = 40; // about 2 minutes
+const POLL_MS = 2500;
+const MAX_POLLS = 40; // about 1.5 - 2 minutes
 
 function StatusView() {
   const params = useSearchParams();
+  const router = useRouter();
   const order = params.get('order') || '';
   const token = params.get('token') || '';
+  const orderId = params.get('order_id') || params.get('orderNumber') || '';
+  const gateway = params.get('gateway') || '';
+
   const clearCart = useCartStore((s) => s.clearCart);
   const [data, setData] = useState<Status | null>(null);
   const [error, setError] = useState('');
   const [polls, setPolls] = useState(0);
 
+  // If redirected from DirectPay gateway or ?order_id is explicitly given:
   useEffect(() => {
+    if (!orderId && gateway !== 'directpay') return;
+    const targetOrder = orderId || order;
+    if (!targetOrder) return;
+
+    let stop = false;
+    const checkDirectPayStatus = async () => {
+      try {
+        const res = await fetch(`/api/directpay/status?order_id=${encodeURIComponent(targetOrder)}`, { cache: 'no-store' });
+        const json = await res.json();
+
+        if (stop) return;
+        if (!json.success) {
+          setError(json.error || 'Order not found');
+          return;
+        }
+
+        const s = String(json.status).toLowerCase();
+        if (s === 'paid' || s === 'success') {
+          clearCart();
+          router.replace(`/checkout/success?gateway=directpay&order_id=${encodeURIComponent(targetOrder)}`);
+        } else if (s === 'failed' || s === 'fail') {
+          const reason = encodeURIComponent(json.message || 'Payment failed');
+          router.replace(`/checkout/fail?gateway=directpay&order_id=${encodeURIComponent(targetOrder)}&reason=${reason}`);
+        } else if (s === 'cancelled' || s === 'canceled') {
+          router.replace(`/checkout/cancel?gateway=directpay&order_id=${encodeURIComponent(targetOrder)}`);
+        } else {
+          // Still pending, continue polling if under limit
+          if (polls < MAX_POLLS) {
+            setTimeout(() => {
+              if (!stop) setPolls((p) => p + 1);
+            }, POLL_MS);
+          } else {
+            setData({
+              orderNumber: targetOrder,
+              paymentMethod: 'directpay',
+              paymentStatus: 'pending',
+              total: json.total || 0,
+              failureReason: null,
+            });
+          }
+        }
+      } catch (err: any) {
+        if (!stop) setError(err.message || 'Error checking payment status');
+      }
+    };
+
+    checkDirectPayStatus();
+    return () => {
+      stop = true;
+    };
+  }, [orderId, gateway, order, polls, router, clearCart]);
+
+  // Standard Gizmorex order lookup when order & token are provided
+  useEffect(() => {
+    if (orderId || gateway === 'directpay') return;
     if (!order || !token) {
       setError('Order not found');
       return;
@@ -47,26 +108,34 @@ function StatusView() {
     return () => {
       stop = true;
     };
-  }, [order, token, polls]);
+  }, [order, token, polls, orderId, gateway]);
 
-  // Card payments: keep checking until DirectPay's confirmation reaches the server.
+  // DirectPay card polling for token-authenticated status page
   useEffect(() => {
+    if (orderId || gateway === 'directpay') return;
     if (data?.paymentMethod !== 'directpay' || data.paymentStatus !== 'pending' || polls >= MAX_POLLS) return;
     const t = setTimeout(() => setPolls((p) => p + 1), POLL_MS);
     return () => clearTimeout(t);
-  }, [data, polls]);
+  }, [data, polls, orderId, gateway]);
 
   useEffect(() => {
     if (data?.paymentStatus === 'paid') clearCart();
   }, [data, clearCart]);
 
-  const wa = `https://wa.me/${BRAND.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi Gizmorex, my order number is ${order}`)}`;
+  const activeOrderNum = orderId || order || data?.orderNumber || '';
+  const wa = `https://wa.me/${BRAND.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hi Gizmorex, my order number is ${activeOrderNum}`)}`;
 
   if (error) {
     return <Card icon={<XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />} title="Order not found" text={error} wa={wa} />;
   }
   if (!data) {
-    return <Card icon={<Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />} title="Loading your order..." />;
+    return (
+      <Card
+        icon={<Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />}
+        title="Confirming your payment..."
+        text="Please wait while we connect with DirectPay IPG. Do not close this window."
+      />
+    );
   }
 
   const isCard = data.paymentMethod === 'directpay';
@@ -75,12 +144,17 @@ function StatusView() {
       <Card
         icon={<Clock className="w-16 h-16 text-amber-500 mx-auto mb-4" />}
         title="Payment still processing"
-        text="We haven't received the bank's confirmation yet. If money was taken from your card, WhatsApp us with your order number and we'll confirm it."
+        text="We haven't received the bank's confirmation yet. If money was deducted from your card, please WhatsApp us with your order reference and we will confirm it immediately."
         order={data.orderNumber}
         wa={wa}
       />
     ) : (
-      <Card icon={<Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />} title="Confirming your payment..." text="This usually takes a few seconds. Please don't close this page." order={data.orderNumber} />
+      <Card
+        icon={<Loader2 className="w-12 h-12 text-primary animate-spin mx-auto mb-4" />}
+        title="Confirming your payment..."
+        text="This usually takes a few seconds. Please don't close this page."
+        order={data.orderNumber}
+      />
     );
   }
   if (isCard && data.paymentStatus !== 'paid') {
