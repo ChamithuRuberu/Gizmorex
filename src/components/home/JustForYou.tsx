@@ -5,6 +5,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import type { Category, Product } from '@/types';
 import { formatPrice } from '@/lib/utils';
+import { FREE_SHIPPING_THRESHOLD } from '@/lib/constants';
 import { Star, ShoppingCart, Heart, Sparkles, Truck, CheckCircle2 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
@@ -43,7 +44,7 @@ export default function JustForYou({ products = [], categories = [] }: JustForYo
   return (
     <section className="py-6 bg-gray-50">
       <div className="container-custom">
-        {/* Daraz "Just For You" Sticky/Prominent Header */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-orange-100 text-primary flex items-center justify-center">
@@ -59,7 +60,7 @@ export default function JustForYou({ products = [], categories = [] }: JustForYo
             </div>
           </div>
 
-          {/* Daraz Category Quick Filter Pills */}
+          {/* Category tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 max-w-full">
             {tabs.map((tab) => (
               <button
@@ -80,7 +81,7 @@ export default function JustForYou({ products = [], categories = [] }: JustForYo
           </div>
         </div>
 
-        {/* 6-Column Daraz Product Grid */}
+        {/* Product grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {visibleProducts.map((product) => {
             const discount =
@@ -141,7 +142,7 @@ export default function JustForYou({ products = [], categories = [] }: JustForYo
                       </h3>
                     </Link>
 
-                    {/* Price in Daraz Orange */}
+                    {/* Price */}
                     <div className="flex flex-col mb-1.5">
                       <span className="text-sm font-black text-[#FF6B00]">
                         {formatPrice(product.price)}
@@ -153,24 +154,23 @@ export default function JustForYou({ products = [], categories = [] }: JustForYo
                       )}
                     </div>
 
-                    {/* Ratings */}
-                    <div className="flex items-center gap-1 text-[11px] text-gray-500 mb-2">
-                      <div className="flex items-center text-amber-400">
-                        <Star className="w-3 h-3 fill-amber-400" />
-                        <span className="text-[10px] font-bold text-gray-700 ml-0.5">
-                          {product.rating ? product.rating.toFixed(1) : '5.0'}
-                        </span>
+                    {/* Ratings: only real reviews */}
+                    {product.numReviews > 0 && (
+                      <div className="flex items-center gap-1 text-[11px] text-gray-500 mb-2">
+                        <div className="flex items-center text-amber-400">
+                          <Star className="w-3 h-3 fill-amber-400" />
+                          <span className="text-[10px] font-bold text-gray-700 ml-0.5">{product.rating.toFixed(1)}</span>
+                        </div>
+                        <span className="text-[10px] text-gray-400">({product.numReviews})</span>
                       </div>
-                      <span className="text-[10px] text-gray-400">
-                        ({product.numReviews || Math.floor(Math.random() * 40 + 5)})
-                      </span>
-                    </div>
+                    )}
 
-                    {/* Daraz Badges (Free delivery & COD) */}
                     <div className="flex flex-wrap gap-1 mb-2">
-                      <span className="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                        <Truck className="w-2.5 h-2.5" /> Free Shipping
-                      </span>
+                      {product.price >= FREE_SHIPPING_THRESHOLD && (
+                        <span className="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                          <Truck className="w-2.5 h-2.5" /> Free delivery
+                        </span>
+                      )}
                       <span className="text-[9px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
                         <CheckCircle2 className="w-2.5 h-2.5" /> COD
                       </span>
@@ -191,7 +191,7 @@ export default function JustForYou({ products = [], categories = [] }: JustForYo
           })}
         </div>
 
-        {/* Daraz "LOAD MORE" Button */}
+        {/* Load more */}
         {filteredProducts.length > displayCount && (
           <div className="mt-8 text-center">
             <button

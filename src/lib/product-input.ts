@@ -1,5 +1,5 @@
 import CategoryModel from '@/models/Category';
-import { slugify } from '@/lib/taxonomy';
+import { slugify } from '@/lib/slugify';
 
 /** Validates an admin product form body into a document ready for MongoDB. */
 

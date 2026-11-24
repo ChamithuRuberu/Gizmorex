@@ -4,14 +4,13 @@ import { useEffect, useState } from 'react';
 import { formatPrice } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Plus, Edit, Trash2, Search, Filter, AlertTriangle, Sparkles, RefreshCw } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Filter, AlertTriangle } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Product } from '@/types';
 
 export default function AdminProductsPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [seeding, setSeeding] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [categoryFilter, setCategoryFilter] = useState('');
@@ -76,24 +75,6 @@ export default function AdminProductsPage() {
     fetchProducts();
   };
 
-  const handleSeedDatabase = async () => {
-    setSeeding(true);
-    const toastId = toast.loading('Syncing categories...');
-    try {
-      const res = await fetch('/api/admin/seed', { method: 'POST' });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message, { id: toastId });
-        await fetchProducts();
-      } else {
-        toast.error(data.error, { id: toastId });
-      }
-    } catch (err) {
-      toast.error('Could not sync categories', { id: toastId });
-    } finally {
-      setSeeding(false);
-    }
-  };
 
   const handleDelete = async (id: string) => {
     if (!confirm('Are you sure you want to delete this product?')) return;
@@ -136,15 +117,6 @@ export default function AdminProductsPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleSeedDatabase}
-            disabled={seeding}
-            className="btn-outline text-xs py-2 px-3 flex items-center gap-1.5"
-            title="Create missing categories and move products off old categories"
-          >
-            {seeding ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
-            Sync categories
-          </button>
           <Link href="/admin/products/new" className="btn-primary text-xs py-2 px-4 flex items-center gap-1.5">
             <Plus className="w-4 h-4" />
             Add Product
@@ -247,7 +219,7 @@ export default function AdminProductsPage() {
                       <p className="text-xs text-gray-400">
                         {categoryFilter
                           ? `No products found under category "${categoryFilter}".`
-                          : 'You can populate the initial sample catalog or create your first product.'}
+                          : 'Add a product, or import the catalog with npm run import:ido.'}
                       </p>
                       {categoryFilter ? (
                         <button
@@ -257,14 +229,10 @@ export default function AdminProductsPage() {
                           View All Categories
                         </button>
                       ) : (
-                        <button
-                          onClick={handleSeedDatabase}
-                          disabled={seeding}
-                          className="btn-primary text-xs py-2 px-4 mx-auto inline-flex items-center gap-1.5"
-                        >
-                          <Sparkles className="w-3.5 h-3.5" />
-                          Sync categories
-                        </button>
+                        <Link href="/admin/products/new" className="btn-primary text-xs py-2 px-4 mx-auto inline-flex items-center gap-1.5">
+                          <Plus className="w-3.5 h-3.5" />
+                          Add your first product
+                        </Link>
                       )}
                     </div>
                   </td>

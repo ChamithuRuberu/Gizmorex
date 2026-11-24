@@ -21,6 +21,8 @@ export interface IProduct extends Document {
   isFlashDeal: boolean;
   isNewArrival?: boolean;
   flashDealEndsAt?: Date;
+  /** Where an imported product came from (e.g. ido.lk), for re-imports. */
+  source?: { name: string; id: number; url: string };
 }
 
 const ProductSchema = new Schema<IProduct>(
@@ -46,6 +48,7 @@ const ProductSchema = new Schema<IProduct>(
     isFlashDeal: { type: Boolean, default: false },
     isNewArrival: { type: Boolean, default: true },
     flashDealEndsAt: { type: Date },
+    source: { name: String, id: Number, url: String },
   },
   { timestamps: true }
 );

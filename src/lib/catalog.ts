@@ -2,6 +2,7 @@ import 'server-only';
 import dbConnect from '@/lib/mongodb';
 import ProductModel from '@/models/Product';
 import CategoryModel from '@/models/Category';
+import BannerModel from '@/models/Banner';
 import type { Category, Product } from '@/types';
 
 /**
@@ -181,18 +182,48 @@ export async function getRelatedProducts(product: Product, limit = 4): Promise<P
 
 // ---------- home page ----------
 
+export interface HomeBanner {
+  _id: string;
+  title: string;
+  subtitle: string;
+  image: string;
+  link: string;
+  buttonText: string;
+}
+
+export interface BrandCount {
+  name: string;
+  count: number;
+}
+
 export async function getHomeData() {
   await dbConnect();
-  const [flash, featured, latest, { tree }] = await Promise.all([
+  const [flash, featured, latest, { tree }, banners, brands] = await Promise.all([
     ProductModel.find({ isActive: true, isFlashDeal: true }).sort({ updatedAt: -1 }).limit(12).lean(),
     ProductModel.find({ isActive: true, isFeatured: true }).sort({ sold: -1 }).limit(12).lean(),
     ProductModel.find({ isActive: true }).sort({ createdAt: -1 }).limit(48).lean(),
     getCategoryTree(),
+    BannerModel.find({ isActive: true }).sort({ sortOrder: 1, createdAt: 1 }).limit(8).lean(),
+    ProductModel.aggregate<{ _id: string; count: number }>([
+      { $match: { isActive: true, brand: { $nin: ['', 'Generic'] } } },
+      { $group: { _id: '$brand', count: { $sum: 1 } } },
+      { $sort: { count: -1, _id: 1 } },
+      { $limit: 12 },
+    ]),
   ]);
   return {
     flashDeals: flash.map(toProduct),
     featured: featured.map(toProduct),
     latest: latest.map(toProduct),
     categories: tree.filter((c) => c.productCount > 0),
+    banners: banners.map((b): HomeBanner => ({
+      _id: String(b._id),
+      title: b.title,
+      subtitle: b.subtitle,
+      image: b.image,
+      link: b.link,
+      buttonText: b.buttonText,
+    })),
+    brands: brands.map((b): BrandCount => ({ name: b._id, count: b.count })),
   };
 }

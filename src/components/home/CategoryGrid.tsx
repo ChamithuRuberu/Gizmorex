@@ -33,7 +33,7 @@ export default function CategoryGrid({ categories }: CategoryGridProps) {
             </Link>
           </div>
 
-          {/* Daraz 2-row / 8-column Category Grid */}
+          {/* Category grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2.5 sm:gap-3">
             {displayCategories.map((cat: any) => {
               return (

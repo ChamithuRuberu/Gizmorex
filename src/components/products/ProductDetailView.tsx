@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Image from 'next/image';
 import { ShoppingCart, Heart, Share2, Shield, Truck, RotateCcw, Star, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
+import { BRAND, FREE_SHIPPING_THRESHOLD } from '@/lib/constants';
 import StarRating from '@/components/ui/StarRating';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import ProductCard from '@/components/products/ProductCard';
@@ -98,9 +99,13 @@ export default function ProductDetailView({ product, relatedProducts, categoryNa
               <h1 className="text-2xl font-bold text-dark-300 mb-3 leading-tight">{product.name}</h1>
 
               <div className="flex items-center gap-3 mb-4">
-                <StarRating rating={product.rating || 5} numReviews={product.numReviews || 0} size="md" />
-                <span className="text-sm text-gray-500">|</span>
-                <span className="text-sm text-green-600 font-medium">{product.sold || 0} sold</span>
+                {product.numReviews > 0 && (
+                  <>
+                    <StarRating rating={product.rating} numReviews={product.numReviews} size="md" />
+                    <span className="text-sm text-gray-500">|</span>
+                  </>
+                )}
+                {product.sold > 0 && <span className="text-sm text-green-600 font-medium">{product.sold} sold</span>}
               </div>
 
               <div className="flex items-end gap-3 mb-5">
@@ -173,9 +178,9 @@ export default function ProductDetailView({ product, relatedProducts, categoryNa
               {/* Trust Badges */}
               <div className="grid grid-cols-3 gap-3">
                 {[
-                  { icon: Truck, label: 'Free Delivery', sub: 'On orders > Rs. 10,000' },
-                  { icon: Shield, label: '1 Year Warranty', sub: 'Official warranty' },
-                  { icon: RotateCcw, label: '7-Day Returns', sub: 'Easy returns' },
+                  { icon: Truck, label: 'Islandwide delivery', sub: `Free over ${formatPrice(FREE_SHIPPING_THRESHOLD)}` },
+                  { icon: Shield, label: 'Cash on delivery', sub: 'Pay when it arrives' },
+                  { icon: RotateCcw, label: 'Questions?', sub: `WhatsApp ${BRAND.whatsapp}` },
                 ].map(({ icon: Icon, label, sub }) => (
                   <div key={label} className="flex flex-col items-center text-center p-3 bg-gray-50 rounded-xl">
                     <Icon className="w-5 h-5 text-primary mb-1" />
