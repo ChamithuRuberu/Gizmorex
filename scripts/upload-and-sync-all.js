@@ -16,7 +16,7 @@ cloudinary.config({
   secure: true,
 });
 
-const MONGODB_URI = 'mongodb+srv://gizmorexlk_db_user:ecyqU4dT1HXGQTXC@gizmorex.lim6iy0.mongodb.net/gizmorex?retryWrites=true&w=majority';
+const MONGODB_URI = process.env.MONGODB_URI;
 
 // Import data from compiled or ts files
 const dataFilePath = path.join(__dirname, '..', 'src', 'lib', 'data.ts');

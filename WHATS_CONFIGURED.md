@@ -9,7 +9,7 @@
 ### Your Credentials (Active):
 ```
 Cloud Name: yvp0ravz
-API Key:    454265773368939
+API Key:    <your-cloudinary-api-key>
 API Secret: ••••••••••••••••• (Configured)
 ```
 
@@ -222,7 +222,7 @@ JWT_SECRET                   ✅ Configured
 
 # Cloudinary
 CLOUDINARY_CLOUD_NAME        ✅ yvp0ravz
-CLOUDINARY_API_KEY           ✅ 454265773368939
+CLOUDINARY_API_KEY           ✅ <your-cloudinary-api-key>
 CLOUDINARY_API_SECRET        ✅ Configured
 ```
 
