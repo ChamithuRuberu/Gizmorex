@@ -14,6 +14,7 @@
  *   --inactive         import new products hidden (isActive: false) so you can review them first
  *   --prune            afterwards, delete categories that have no products and no sub-categories
  *   --dry-run          show what would happen, write nothing
+ *   --source-text      copy ido.lk's own description text instead of writing original copy (not recommended)
  *
  * Reads MONGODB_URI and CLOUDINARY_* from .env.local. Only real data is stored:
  * stock comes from "in stock", and sold / rating / reviews start at 0.
@@ -21,6 +22,7 @@
 import mongoose from 'mongoose';
 import { v2 as cloudinary } from 'cloudinary';
 import nextEnv from '@next/env';
+import { cleanName, writeContent } from './own-content.mjs';
 
 nextEnv.loadEnvConfig(process.cwd(), true, { info() {}, error: console.error });
 
@@ -43,6 +45,7 @@ const opt = {
   inactive: Boolean(args.inactive),
   prune: Boolean(args.prune),
   dryRun: Boolean(args['dry-run']),
+  sourceText: Boolean(args['source-text']),
 };
 
 // ---------- helpers ----------
@@ -237,15 +240,22 @@ async function main() {
           .map((a) => [htmlToText(a.name), a.terms.map((t) => htmlToText(t.name)).join(', ')])
       );
       const now = new Date();
+      const name = opt.sourceText ? htmlToText(p.name) : cleanName(htmlToText(p.name));
+      const brand = htmlToText(p.brands?.[0]?.name || '') || 'Generic';
+      // Original copy: only facts (model, capacity, ports...) are reused, the sentences are ours.
+      const copy = opt.sourceText
+        ? { description: htmlToText(p.description || p.short_description || ''), features: [] }
+        : writeContent(p, { name, brand, categoryName: htmlToText(leaf.name), specifications });
       const fields = {
-        name: htmlToText(p.name),
+        name,
         slug,
-        description: htmlToText(p.description || p.short_description || ''),
+        description: copy.description || name,
+        features: copy.features,
         price,
         originalPrice: regular > price ? regular : price,
         images,
         category: categorySlug,
-        brand: htmlToText(p.brands?.[0]?.name || '') || 'Generic',
+        brand,
         specifications,
         tags: (p.tags || []).map((t) => htmlToText(t.name).toLowerCase()).filter(Boolean),
         source: { name: 'ido.lk', id: p.id, url: p.permalink },
@@ -267,7 +277,6 @@ async function main() {
             sold: 0,
             rating: 0,
             numReviews: 0,
-            features: [],
             isActive: !opt.inactive,
             isFeatured: false,
             isFlashDeal: Boolean(p.on_sale),
