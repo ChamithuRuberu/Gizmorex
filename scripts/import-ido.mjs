@@ -18,11 +18,16 @@
  * Reads MONGODB_URI and CLOUDINARY_* from .env.local. Only real data is stored:
  * stock comes from "in stock", and sold / rating / reviews start at 0.
  */
+import dns from 'node:dns';
 import mongoose from 'mongoose';
 import { v2 as cloudinary } from 'cloudinary';
 import nextEnv from '@next/env';
 
 nextEnv.loadEnvConfig(process.cwd(), true, { info() {}, error: console.error });
+
+// Some ISPs/routers refuse the SRV lookup that mongodb+srv:// needs (querySrv ECONNREFUSED).
+// Resolve through public DNS instead. Set IMPORT_DNS=system to keep your own DNS.
+if (process.env.IMPORT_DNS !== 'system') dns.setServers(['8.8.8.8', '1.1.1.1']);
 
 const SOURCE = 'https://ido.lk';
 const API = `${SOURCE}/wp-json/wc/store`;
