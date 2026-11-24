@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { getCategoryTree, listProducts } from '@/lib/catalog';
 import ProductCard from '@/components/products/ProductCard';
@@ -30,6 +29,7 @@ export default async function CategoryPage({ params }: Props) {
 
   return (
     <div className="container-custom py-6">
+      <h1 className="sr-only">{category.name}</h1>
       <Breadcrumb
         items={[
           { label: 'Categories', href: '/categories' },
@@ -37,21 +37,6 @@ export default async function CategoryPage({ params }: Props) {
           { label: category.name },
         ]}
       />
-
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6 flex items-center justify-between gap-4">
-        <div>
-          <span className="text-xs font-bold text-primary uppercase tracking-wider">{parent ? parent.name : 'Category'}</span>
-          <h1 className="text-2xl sm:text-3xl font-black text-dark-300 mt-1">{category.name}</h1>
-          <p className="text-gray-500 text-sm mt-1">
-            {total} product{total === 1 ? '' : 's'}
-          </p>
-        </div>
-        {category.image ? (
-          <div className="relative w-20 h-20 rounded-2xl overflow-hidden border border-gray-100 flex-shrink-0">
-            <Image src={category.image} alt={category.name} fill className="object-cover" sizes="80px" />
-          </div>
-        ) : null}
-      </div>
 
       {chips.length > 0 && (
         <nav aria-label="Sub-categories" className="flex flex-wrap gap-2 mb-6">
