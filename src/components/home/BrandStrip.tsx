@@ -5,21 +5,24 @@ import type { BrandCount } from '@/lib/catalog';
 export default function BrandStrip({ brands }: { brands: BrandCount[] }) {
   if (brands.length === 0) return null;
   return (
-    <section className="py-4 bg-gray-50">
-      <div className="container-custom bg-white rounded-2xl border border-gray-100 p-4 sm:p-5">
-        <h2 className="text-base sm:text-lg font-black text-dark-300 mb-3">Shop by brand</h2>
-        <ul className="flex flex-wrap gap-2">
-          {brands.map((b) => (
-            <li key={b.name}>
-              <Link
-                href={`/products?search=${encodeURIComponent(b.name)}`}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full border border-gray-200 text-sm font-semibold text-gray-700 hover:border-primary hover:text-primary"
-              >
-                {b.name} <span className="text-xs text-gray-400">{b.count}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+    <section className="bg-gray-50">
+      <div className="container-custom">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-4 sm:p-5">
+          <h2 className="text-base sm:text-lg font-black text-dark-300 mb-3">Top brands</h2>
+          <ul className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2 sm:gap-3">
+            {brands.map((b) => (
+              <li key={b.name}>
+                <Link
+                  href={`/products?search=${encodeURIComponent(b.name)}`}
+                  className="group flex flex-col items-center justify-center h-20 rounded-xl border border-gray-100 bg-gray-50/60 hover:bg-white hover:border-primary/50 hover:shadow-card transition-all"
+                >
+                  <span className="text-sm sm:text-base font-black tracking-tight text-dark-300 group-hover:text-primary uppercase">{b.name}</span>
+                  <span className="text-[11px] text-gray-400 mt-0.5">{b.count} product{b.count === 1 ? '' : 's'}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
     </section>
   );

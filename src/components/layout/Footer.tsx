@@ -1,12 +1,21 @@
 'use client';
 
 import Link from 'next/link';
-import { Facebook, Instagram, Twitter, Youtube, MapPin, Phone, Mail, MessageCircle } from 'lucide-react';
+import { useEffect } from 'react';
+import { Facebook, Instagram, Music2, MapPin, Phone, Mail, MessageCircle } from 'lucide-react';
 import { BRAND } from '@/lib/constants';
 import { useCategoryStore } from '@/store/categoryStore';
 
 export default function Footer() {
-  const { categories } = useCategoryStore();
+  const { categories, fetchCategories } = useCategoryStore();
+  useEffect(() => {
+    fetchCategories();
+  }, [fetchCategories]);
+  const socials = [
+    { icon: Facebook, href: BRAND.social.facebook, label: 'Facebook' },
+    { icon: Instagram, href: BRAND.social.instagram, label: 'Instagram' },
+    { icon: Music2, href: BRAND.social.tiktok, label: 'TikTok' },
+  ].filter((x) => x.href);
 
   return (
     <footer className="bg-dark-500 text-gray-400">
@@ -20,25 +29,24 @@ export default function Footer() {
               <span className="text-white">REX</span>
             </div>
             <p className="text-sm leading-relaxed mb-5 text-gray-500">
-              {BRAND.description}. Quality tech products with islandwide delivery.
+              {BRAND.description}. Order online or on WhatsApp, pay by card or cash on delivery.
             </p>
-            <div className="flex items-center gap-3">
-              {[
-                { icon: Facebook, href: '#', label: 'Facebook' },
-                { icon: Instagram, href: '#', label: 'Instagram' },
-                { icon: Twitter, href: '#', label: 'Twitter' },
-                { icon: Youtube, href: '#', label: 'YouTube' },
-              ].map(({ icon: Icon, href, label }) => (
-                <a
-                  key={label}
-                  href={href}
-                  aria-label={label}
-                  className="w-9 h-9 rounded-full bg-dark-400 hover:bg-primary flex items-center justify-center transition-colors"
-                >
-                  <Icon className="w-4 h-4 text-gray-400 hover:text-white" />
-                </a>
-              ))}
-            </div>
+            {socials.length > 0 && (
+              <div className="flex items-center gap-3">
+                {socials.map(({ icon: Icon, href, label }) => (
+                  <a
+                    key={label}
+                    href={href}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    aria-label={label}
+                    className="w-9 h-9 rounded-full bg-dark-400 hover:bg-primary flex items-center justify-center transition-colors"
+                  >
+                    <Icon className="w-4 h-4 text-gray-300" />
+                  </a>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Quick Links */}
@@ -50,10 +58,8 @@ export default function Footer() {
                 { label: 'All Products', href: '/products' },
                 { label: 'All Categories', href: '/categories' },
                 { label: 'Flash Deals', href: '/products?deals=true' },
-                { label: 'About Us', href: '/about' },
-                { label: 'Contact', href: '/contact' },
-                { label: 'Privacy Policy', href: '/privacy' },
-                { label: 'Terms & Conditions', href: '/terms' },
+                { label: 'My Orders', href: '/orders' },
+                { label: 'Wishlist', href: '/wishlist' },
               ].map(item => (
                 <li key={item.href}>
                   <Link href={item.href} className="text-sm hover:text-primary transition-colors">
@@ -121,7 +127,7 @@ export default function Footer() {
           <p className="text-xs text-gray-600">© {new Date().getFullYear()} Gizmorex. All rights reserved.</p>
           <div className="flex items-center gap-3">
             <span className="text-xs text-gray-600">We Accept:</span>
-            {['VISA', 'MC', 'COD'].map(p => (
+            {['Visa', 'Mastercard', 'Cash on delivery'].map(p => (
               <span key={p} className="bg-dark-400 text-gray-400 text-xs px-2 py-1 rounded font-semibold">{p}</span>
             ))}
           </div>

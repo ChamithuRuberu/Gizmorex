@@ -9,6 +9,12 @@ export const BRAND = {
   phone: '+94 74 339 8271',
   whatsapp: '+94 74 339 8271',
   address: 'Piliyandala, Sri Lanka',
+  /** Social profile URLs. Leave empty to hide the icon in the footer. */
+  social: {
+    facebook: '',
+    instagram: '',
+    tiktok: '',
+  },
 };
 
 // Districts for checkout

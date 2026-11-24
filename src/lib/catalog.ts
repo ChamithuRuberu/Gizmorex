@@ -196,9 +196,14 @@ export interface BrandCount {
   count: number;
 }
 
+export interface HomeRow {
+  category: Category;
+  products: Product[];
+}
+
 export async function getHomeData() {
   await dbConnect();
-  const [flash, featured, latest, { tree }, banners, brands] = await Promise.all([
+  const [flash, featured, latest, { tree }, banners, brands, topDiscount] = await Promise.all([
     ProductModel.find({ isActive: true, isFlashDeal: true }).sort({ updatedAt: -1 }).limit(12).lean(),
     ProductModel.find({ isActive: true, isFeatured: true }).sort({ sold: -1 }).limit(12).lean(),
     ProductModel.find({ isActive: true }).sort({ createdAt: -1 }).limit(48).lean(),
@@ -210,12 +215,38 @@ export async function getHomeData() {
       { $sort: { count: -1, _id: 1 } },
       { $limit: 12 },
     ]),
+    ProductModel.aggregate<{ pct: number }>([
+      { $match: { isActive: true, stock: { $gt: 0 }, $expr: { $gt: ['$originalPrice', '$price'] } } },
+      { $project: { pct: { $multiply: [{ $divide: [{ $subtract: ['$originalPrice', '$price'] }, '$originalPrice'] }, 100] } } },
+      { $sort: { pct: -1 } },
+      { $limit: 1 },
+    ]),
   ]);
+
+  // One product row per main category: sold best first, then newest.
+  const rows: HomeRow[] = (
+    await Promise.all(
+      tree
+        .filter((c) => c.productCount > 0)
+        .slice(0, 6)
+        .map(async (category) => {
+          const scope = [category.slug, ...(category.children ?? []).map((c) => c.slug)];
+          const docs = await ProductModel.find({ isActive: true, category: { $in: scope } })
+            .sort({ sold: -1, isFeatured: -1, updatedAt: -1 })
+            .limit(12)
+            .lean();
+          return { category, products: docs.map(toProduct) };
+        })
+    )
+  ).filter((r) => r.products.length > 0);
+
   return {
     flashDeals: flash.map(toProduct),
     featured: featured.map(toProduct),
     latest: latest.map(toProduct),
     categories: tree, // every active category, even before it has products
+    rows,
+    maxDiscount: Math.floor(topDiscount[0]?.pct ?? 0),
     banners: banners.map((b): HomeBanner => ({
       _id: String(b._id),
       title: b.title,

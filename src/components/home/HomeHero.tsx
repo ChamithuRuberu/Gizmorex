@@ -26,7 +26,7 @@ export default function HomeHero({ categories, banners }: { categories: Category
   const slide = banners[current];
 
   return (
-    <section className="py-3 bg-gray-50">
+    <section className="pt-3 bg-gray-50">
       <div className="container-custom grid grid-cols-1 lg:grid-cols-12 gap-3">
         <nav aria-label="Categories" className="hidden lg:flex lg:col-span-3 flex-col relative bg-white rounded-2xl border border-gray-100 p-2">
           <div className="px-3 py-1.5 flex items-center justify-between border-b border-gray-100 mb-1">
