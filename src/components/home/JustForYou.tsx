@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Product } from '@/types';
+import type { Category, Product } from '@/types';
 import { formatPrice } from '@/lib/utils';
 import { Star, ShoppingCart, Heart, Sparkles, Truck, CheckCircle2 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
@@ -12,19 +12,17 @@ import toast from 'react-hot-toast';
 
 interface JustForYouProps {
   products?: Product[];
+  /** Top-level categories (with children) to show as filter tabs. */
+  categories?: Category[];
 }
 
-const TABS = [
-  'All Products',
-  'Smartphones',
-  'Laptops',
-  'Audio',
-  'Gaming',
-  'Accessories',
-];
+const ALL = '';
 
-export default function JustForYou({ products = [] }: JustForYouProps) {
-  const [activeTab, setActiveTab] = useState('All Products');
+export default function JustForYou({ products = [], categories = [] }: JustForYouProps) {
+  const [activeTab, setActiveTab] = useState(ALL);
+  const tabs = [{ slug: ALL, name: 'All Products' }, ...categories.slice(0, 6)];
+  const activeCategory = categories.find((c) => c.slug === activeTab);
+  const activeScope = new Set(activeCategory ? [activeCategory.slug, ...(activeCategory.children ?? []).map((c) => c.slug)] : []);
   const [displayCount, setDisplayCount] = useState(12);
 
   const addItem = useCartStore((s) => s.addItem);
@@ -38,10 +36,7 @@ export default function JustForYou({ products = [] }: JustForYouProps) {
     toast.success(`${product.name} added to cart!`, { icon: '🛒' });
   };
 
-  const filteredProducts = products.filter((p) => {
-    if (activeTab === 'All Products') return true;
-    return p.category.toLowerCase().includes(activeTab.toLowerCase());
-  });
+  const filteredProducts = activeTab === ALL ? products : products.filter((p) => activeScope.has(p.category));
 
   const visibleProducts = filteredProducts.slice(0, displayCount);
 
@@ -66,20 +61,20 @@ export default function JustForYou({ products = [] }: JustForYouProps) {
 
           {/* Daraz Category Quick Filter Pills */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 max-w-full">
-            {TABS.map((tab) => (
+            {tabs.map((tab) => (
               <button
-                key={tab}
+                key={tab.slug}
                 onClick={() => {
-                  setActiveTab(tab);
+                  setActiveTab(tab.slug);
                   setDisplayCount(12);
                 }}
                 className={`text-xs px-3 py-1.5 rounded-full font-semibold transition-all whitespace-nowrap ${
-                  activeTab === tab
+                  activeTab === tab.slug
                     ? 'bg-[#FF6B00] text-white shadow-xs'
                     : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
                 }`}
               >
-                {tab}
+                {tab.name}
               </button>
             ))}
           </div>

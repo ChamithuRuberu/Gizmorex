@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
-import { getInitialFallbackCategories } from '@/lib/category-store';
-import { useCategoryStore } from '@/store/categoryStore';
+import CategoryIcon from '@/components/ui/CategoryIcon';
+import type { Category } from '@/types';
 import {
   ChevronLeft,
   ChevronRight,
@@ -27,20 +27,9 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const ICON_MAP: Record<string, any> = {
-  Smartphone,
-  Laptop,
-  Headphones,
-  Gamepad2,
-  Home,
-  Camera,
-  Cable,
-  Watch,
-  Package,
-};
 
 interface DarazHeroProps {
-  categories?: any[];
+  categories: Category[];
 }
 
 const SLIDES = [
@@ -82,18 +71,7 @@ const SLIDES = [
 export default function DarazHero({ categories }: DarazHeroProps) {
   const [current, setCurrent] = useState(0);
   const [copiedVoucher, setCopiedVoucher] = useState(false);
-  const { categories: storeCategories, fetchCategories } = useCategoryStore();
-
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
-
-  const categoryList =
-    storeCategories && storeCategories.length > 0
-      ? storeCategories
-      : categories && categories.length > 0
-      ? categories
-      : getInitialFallbackCategories();
+  const categoryList = categories;
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -131,15 +109,14 @@ export default function DarazHero({ categories }: DarazHeroProps) {
               </div>
 
               {categoryList.slice(0, 8).map((cat) => {
-                const Icon = ICON_MAP[cat.icon] || Package;
                 return (
                   <Link
-                    key={cat._id || cat.slug}
+                    key={cat.slug}
                     href={`/categories/${cat.slug}`}
                     className="flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold text-gray-700 hover:text-primary hover:bg-orange-50/70 transition-colors group"
                   >
                     <div className="flex items-center gap-2.5 truncate">
-                      <Icon className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors flex-shrink-0" />
+                      <CategoryIcon name={cat.icon} className="w-4 h-4 text-gray-400 group-hover:text-primary transition-colors flex-shrink-0" />
                       <span className="truncate">{cat.name}</span>
                     </div>
                     <ChevronRight className="w-3.5 h-3.5 text-gray-300 group-hover:text-primary group-hover:translate-x-0.5 transition-all flex-shrink-0" />

@@ -1,30 +1,12 @@
 'use client';
 
-import { useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { NAV_ITEMS } from '@/lib/constants';
-import { useCategoryStore } from '@/store/categoryStore';
+import { useNavItems } from '@/components/layout/useNavItems';
 
 export default function Navbar() {
   const pathname = usePathname();
-  const { categories, fetchCategories } = useCategoryStore();
-
-  useEffect(() => {
-    fetchCategories();
-  }, [fetchCategories]);
-
-  // Clean, beautifully structured nav items (updates category name if edited in admin)
-  const navItems = NAV_ITEMS.map((item) => {
-    if (item.href.startsWith('/categories/')) {
-      const slug = item.href.replace('/categories/', '').toLowerCase();
-      const matched = categories.find((c) => c.slug.toLowerCase() === slug);
-      if (matched) {
-        return { ...item, label: matched.name };
-      }
-    }
-    return item;
-  });
+  const navItems = useNavItems();
 
   return (
     <nav className="bg-white border-b border-gray-100 hidden md:block">

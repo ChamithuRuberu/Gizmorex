@@ -1,140 +1,45 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import Category from '@/models/Category';
-import Product from '@/models/Product';
-import { CATEGORIES as DEFAULT_CATEGORIES } from '@/lib/constants';
-import { getInitialFallbackCategories, updateFallbackCategory } from '@/lib/category-store';
+import CategoryModel from '@/models/Category';
+import { getCategoryTree } from '@/lib/catalog';
+import { parseCategoryInput } from '@/lib/category-input';
+import { InputError } from '@/lib/product-input';
+import { revalidateStorefront } from '@/lib/revalidate';
 
-// GET /api/admin/categories - Get all categories
-export async function GET(request: NextRequest) {
+export const dynamic = 'force-dynamic';
+
+/**
+ * GET /api/admin/categories
+ * `data`: flat list in tree order (each parent followed by its sub-categories), with parentSlug and counts.
+ * `tree`: top-level categories with `children`.
+ */
+export async function GET() {
   try {
-    await dbConnect();
-    
-    let categories = await Category.find().sort({ sortOrder: 1, name: 1 });
-
-    // Auto-seed default categories if empty in MongoDB
-    if (categories.length === 0) {
-      const toInsert = DEFAULT_CATEGORIES.map((c, index) => ({
-        name: c.name,
-        slug: c.slug,
-        description: `Browse latest ${c.name} and accessories`,
-        icon: c.icon || 'Package',
-        color: c.color || '#FF6B00',
-        image: (c as any).image || '',
-        sortOrder: index,
-        productCount: 0,
-        isActive: true,
-      }));
-      await Category.insertMany(toInsert);
-      categories = await Category.find().sort({ sortOrder: 1, name: 1 });
-    }
-
-    // Update product counts
-    for (const category of categories) {
-      const count = await Product.countDocuments({
-        category: { $regex: new RegExp(`^${category.name}$`, 'i') },
-        isActive: true,
-      });
-      if (count !== category.productCount) {
-        category.productCount = count;
-        await category.save();
-      }
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: categories,
-    });
-  } catch (error: any) {
-    console.warn('Admin categories DB notice (using resilient cache):', error.message);
-    
-    // Graceful fallback from in-memory category store
-    const fallbackCategories = getInitialFallbackCategories();
-
-    return NextResponse.json({
-      success: true,
-      data: fallbackCategories,
-      isFallback: true,
-      warning: error.message,
-    });
+    const { tree } = await getCategoryTree({ includeInactive: true });
+    const flat = tree.flatMap(({ children = [], ...parent }) => [parent, ...children.map(({ children: _c, ...c }) => c)]);
+    return NextResponse.json({ success: true, data: flat, tree });
+  } catch (error) {
+    console.error('GET /api/admin/categories failed', error);
+    return NextResponse.json({ success: false, error: 'Database unavailable. Check MONGODB_URI and Atlas Network Access.' }, { status: 503 });
   }
 }
 
-// POST /api/admin/categories - Create new category
+/** POST /api/admin/categories */
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { name, slug, description, icon, color, image, sortOrder } = body;
-
-  if (!name || !slug) {
-    return NextResponse.json(
-      { success: false, error: 'Name and slug are required' },
-      { status: 400 }
-    );
-  }
-
   try {
     await dbConnect();
-
-    // Check if category already exists in MongoDB
-    const existingCategory = await Category.findOne({
-      $or: [{ name }, { slug }],
-    });
-
-    if (existingCategory) {
-      return NextResponse.json(
-        { success: false, error: 'Category with this name or slug already exists' },
-        { status: 400 }
-      );
+    const data = await parseCategoryInput({ parent: '', ...(await request.json()) });
+    if (await CategoryModel.exists({ slug: data.slug })) {
+      return NextResponse.json({ success: false, error: 'A category with this slug already exists' }, { status: 409 });
     }
-
-    const category = await Category.create({
-      name: name.trim(),
-      slug: slug.toLowerCase().trim(),
-      description: description || '',
-      icon: icon || 'Package',
-      color: color || '#FF6B00',
-      image: image || '',
-      sortOrder: sortOrder || 0,
-      isActive: true,
-      productCount: 0,
-    });
-
-    // Also update in-memory fallback
-    updateFallbackCategory(category.slug, {
-      _id: category._id.toString(),
-      name: category.name,
-      slug: category.slug,
-      description: category.description,
-      image: category.image,
-      icon: category.icon,
-      color: category.color,
-      sortOrder: category.sortOrder,
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: category,
-      message: 'Category created successfully!',
-    });
-  } catch (error: any) {
-    console.warn('POST Category DB notice (fallback cache used):', error.message);
-
-    // Save to resilient in-memory store so user is not blocked
-    const fallbackSaved = updateFallbackCategory(slug, {
-      name: name.trim(),
-      slug: slug.toLowerCase().trim(),
-      description: description || '',
-      icon: icon || 'Package',
-      color: color || '#FF6B00',
-      image: image || '',
-      sortOrder: sortOrder || 0,
-      isActive: true,
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: fallbackSaved,
-      message: 'Category created in local cache! (Whitelist your IP in MongoDB Atlas to sync to cloud)',
-    });
+    const category = await CategoryModel.create({ isActive: true, ...data });
+    revalidateStorefront();
+    return NextResponse.json({ success: true, data: { ...category.toObject(), _id: String(category._id) }, message: 'Category created' }, { status: 201 });
+  } catch (error) {
+    if (error instanceof InputError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
+    console.error('POST /api/admin/categories failed', error);
+    return NextResponse.json({ success: false, error: 'Could not save the category' }, { status: 500 });
   }
 }

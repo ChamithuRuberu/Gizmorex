@@ -8,25 +8,17 @@ import JustForYou from '@/components/home/JustForYou';
 import BrandBanner from '@/components/home/BrandBanner';
 import CustomerReviews from '@/components/home/CustomerReviews';
 import Newsletter from '@/components/home/Newsletter';
-import { getLiveLandingData } from '@/lib/store-data';
+import { getHomeData } from '@/lib/catalog';
 
-export const revalidate = 60; // Revalidate dynamic landing data every 60 seconds
+// Always read the live catalog so admin changes show immediately.
+export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
-  const data = await getLiveLandingData();
+  const data = await getHomeData();
 
-  // Display full catalog in "Just For You" recommendation feed
-  const justForYouProducts = data.allProducts && data.allProducts.length > 0
-    ? data.allProducts
-    : [
-        ...(data.flashDeals || []),
-        ...(data.featured || []),
-        ...(data.newArrivals || []),
-      ];
-
-  // Deduplicate by _id
+  // "Just For You": deals and featured first, then the newest products, no duplicates.
   const uniqueJustForYou = Array.from(
-    new Map(justForYouProducts.map((p) => [p._id, p])).values()
+    new Map([...data.flashDeals, ...data.featured, ...data.latest].map((p) => [p._id, p])).values()
   );
 
   return (
@@ -50,7 +42,7 @@ export default async function HomePage() {
       <PromoBanners />
 
       {/* 7. Daraz "Just For You" Infinite Recommendations Feed with Category Tabs */}
-      <JustForYou products={uniqueJustForYou} />
+      <JustForYou products={uniqueJustForYou} categories={data.categories} />
 
       {/* 8. Official Brand Partners Banner */}
       <BrandBanner />

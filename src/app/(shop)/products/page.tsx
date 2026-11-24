@@ -5,7 +5,6 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import ProductCard from '@/components/products/ProductCard';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import Pagination from '@/components/ui/Pagination';
-import { MOCK_PRODUCTS } from '@/lib/data';
 import { useCategoryStore } from '@/store/categoryStore';
 import { Product } from '@/types';
 import { SlidersHorizontal, X } from 'lucide-react';
@@ -13,7 +12,8 @@ import { SlidersHorizontal, X } from 'lucide-react';
 function ProductsContent() {
   const params = useSearchParams();
   const router = useRouter();
-  const [allProducts, setAllProducts] = useState<Product[]>(MOCK_PRODUCTS);
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
   const [products, setProducts] = useState<Product[]>([]);
   const [page, setPage] = useState(1);
   const [sort, setSort] = useState('default');
@@ -31,21 +31,21 @@ function ProductsContent() {
     fetchCategories();
   }, [fetchCategories]);
 
-  // Load products from API dynamically
+  // The API applies the category (including its sub-categories); the rest is filtered here.
   useEffect(() => {
-    async function loadProducts() {
-      try {
-        const res = await fetch('/api/products', { cache: 'no-store' });
-        const data = await res.json();
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-          setAllProducts(data.data);
-        }
-      } catch (e) {
-        console.warn('Using fallback products catalog:', e);
-      }
-    }
-    loadProducts();
-  }, []);
+    const controller = new AbortController();
+    const query = new URLSearchParams({ limit: '100' });
+    if (category) query.set('category', category);
+    setLoading(true);
+    fetch(`/api/products?${query}`, { cache: 'no-store', signal: controller.signal })
+      .then((res) => res.json())
+      .then((data) => setAllProducts(data.success ? data.data : []))
+      .catch((e) => {
+        if (e.name !== 'AbortError') setAllProducts([]);
+      })
+      .finally(() => setLoading(false));
+    return () => controller.abort();
+  }, [category]);
 
   const brands = useMemo(() => {
     return [...new Set(allProducts.map(p => p.brand).filter(Boolean))].sort();
@@ -61,15 +61,6 @@ function ProductsContent() {
         (p.brand && p.brand.toLowerCase().includes(q)) ||
         (p.category && p.category.toLowerCase().includes(q))
       );
-    }
-
-    if (category) {
-      filtered = filtered.filter(p => {
-        const prodCat = (p.category || '').toLowerCase();
-        return prodCat === category ||
-               prodCat.replace(/[^a-z0-9]+/g, '-') === category ||
-               categories.some(c => c.slug.toLowerCase() === category && (prodCat === c.name.toLowerCase() || prodCat === c.slug.toLowerCase()));
-      });
     }
 
     if (deals) {
@@ -89,7 +80,7 @@ function ProductsContent() {
 
     setProducts(filtered);
     setPage(1);
-  }, [allProducts, search, category, deals, sort, selectedBrands, priceRange, categories]);
+  }, [allProducts, search, deals, sort, selectedBrands, priceRange]);
 
   const pageProducts = products.slice((page - 1) * LIMIT, page * LIMIT);
 
@@ -152,7 +143,7 @@ function ProductsContent() {
                   const isSelected = category === cat.slug.toLowerCase();
                   return (
                     <label
-                      key={cat.id || cat.slug}
+                      key={cat.slug}
                       onClick={() => handleCategorySelect(cat.slug)}
                       className="flex items-center justify-between gap-2 cursor-pointer group py-1"
                     >
@@ -249,7 +240,7 @@ function ProductsContent() {
               <span className="text-xs text-gray-500">Active:</span>
               {category && (
                 <span className="flex items-center gap-1 bg-orange-100 text-primary text-xs px-2.5 py-1 rounded-full font-medium">
-                  Category: {categories.find(c => c.slug.toLowerCase() === category)?.name || category}
+                  Category: {categories.flatMap(c => [c, ...(c.children ?? [])]).find(c => c.slug === category)?.name || category}
                   <button onClick={() => handleCategorySelect(category)}><X className="w-3 h-3" /></button>
                 </span>
               )}
@@ -268,7 +259,12 @@ function ProductsContent() {
           )}
 
           {/* Grid */}
-          {pageProducts.length > 0 ? (
+          {loading ? (
+            <div className="py-16 text-center text-gray-400">
+              <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+              Loading products...
+            </div>
+          ) : pageProducts.length > 0 ? (
             <>
               <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
                 {pageProducts.map(p => <ProductCard key={p._id} product={p} />)}

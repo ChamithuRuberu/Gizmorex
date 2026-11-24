@@ -6,7 +6,7 @@ import { Search, ShoppingCart, Heart, User, Menu, X, ChevronDown, LogOut, Packag
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useCategoryStore } from '@/store/categoryStore';
-import { NAV_ITEMS } from '@/lib/constants';
+import { useNavItems } from '@/components/layout/useNavItems';
 import { useRouter } from 'next/navigation';
 
 export default function Header() {
@@ -14,7 +14,7 @@ export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All Categories');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const router = useRouter();
   const itemCount = useCartStore(s => s.getItemCount());
   const wishlistCount = useWishlistStore(s => s.count());
@@ -42,22 +42,12 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Clean, beautifully structured nav items (updates category name if edited in admin)
-  const navItems = NAV_ITEMS.map((item) => {
-    if (item.href.startsWith('/categories/')) {
-      const slug = item.href.replace('/categories/', '').toLowerCase();
-      const matched = categories.find((c) => c.slug.toLowerCase() === slug);
-      if (matched) {
-        return { ...item, label: matched.name };
-      }
-    }
-    return item;
-  });
+  const navItems = useNavItems();
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
-      const cat = selectedCategory !== 'All Categories' ? `&category=${encodeURIComponent(selectedCategory.toLowerCase())}` : '';
+      const cat = selectedCategory ? `&category=${encodeURIComponent(selectedCategory)}` : '';
       router.push(`/products?search=${encodeURIComponent(searchQuery)}${cat}`);
       setSearchQuery('');
     }
@@ -85,9 +75,9 @@ export default function Header() {
               onChange={e => setSelectedCategory(e.target.value)}
               className="hidden lg:block bg-gray-50 border-r border-gray-200 px-3 py-2.5 text-sm text-gray-600 focus:outline-none cursor-pointer max-w-[160px] truncate"
             >
-              <option value="All Categories">All Categories</option>
+              <option value="">All Categories</option>
               {categories.map(c => (
-                <option key={c.slug || c.id} value={c.slug}>
+                <option key={c.slug} value={c.slug}>
                   {c.name}
                 </option>
               ))}
