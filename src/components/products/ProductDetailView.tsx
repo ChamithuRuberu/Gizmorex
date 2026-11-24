@@ -61,12 +61,12 @@ export default function ProductDetailView({ product, relatedProducts, categoryNa
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             {/* Images */}
             <div>
-              <div className="relative aspect-square rounded-xl overflow-hidden bg-gray-50 mb-3 border border-gray-100">
+              <div className="relative aspect-square rounded-xl overflow-hidden bg-white mb-3 border border-gray-100">
                 <Image
                   src={images[selectedImage] || images[0]}
                   alt={product.name}
                   fill
-                  className="object-cover"
+                  className="object-contain p-4"
                   sizes="(max-width: 768px) 100vw, 50vw"
                   priority
                 />
@@ -86,7 +86,7 @@ export default function ProductDetailView({ product, relatedProducts, categoryNa
                         i === selectedImage ? 'border-[#FF6B00]' : 'border-gray-200 hover:border-gray-400'
                       }`}
                     >
-                      <Image src={img} alt={`${product.name} ${i + 1}`} fill className="object-cover" sizes="64px" />
+                      <Image src={img} alt={`${product.name} ${i + 1}`} fill className="object-contain p-1" sizes="64px" />
                     </button>
                   ))}
                 </div>

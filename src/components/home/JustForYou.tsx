@@ -100,13 +100,13 @@ export default function JustForYou({ products = [], categories = [] }: JustForYo
                 {/* Product Image */}
                 <Link
                   href={`/products/${product.slug}`}
-                  className="block relative aspect-square bg-gray-50 overflow-hidden"
+                  className="block relative aspect-square bg-white overflow-hidden"
                 >
                   <Image
                     src={product.images[0] || 'https://placehold.co/300x300'}
                     alt={product.name}
                     fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
                     sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 16vw"
                   />
 

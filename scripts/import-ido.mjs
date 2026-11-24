@@ -128,7 +128,7 @@ async function upsertCategory(db, idoCat, parentId, sortOrder) {
         name: htmlToText(idoCat.name),
         slug,
         ...(opt.update ? {} : { parent: parentId }),
-        description: htmlToText(idoCat.description || ''),
+        description: '', // write your own in Admin; ido.lk's category text is not copied
         icon: 'Package',
         color: '#FF6B00',
         image: '',
@@ -285,7 +285,7 @@ async function main() {
             isActive: !opt.inactive,
             isFeatured: false,
             isFlashDeal: Boolean(p.on_sale),
-            isNewArrival: true,
+            isNewArrival: false, // imported stock is not a "new arrival"; tick it in Admin for real new items
             createdAt: now,
           },
         },

@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -31,9 +30,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="w-64 bg-dark-500 text-white flex flex-col flex-shrink-0">
         <div className="p-6 border-b border-dark-400">
           <Link href="/" className="block">
-            <div className="relative w-36 h-10">
-              <Image src="/logo.jpg" alt="Gizmorex" fill className="object-contain brightness-200" priority />
-            </div>
+            <span className="text-2xl font-black tracking-tight">
+              <span className="text-primary">GIZMO</span>
+              <span className="text-white">REX</span>
+            </span>
           </Link>
           <span className="text-[10px] font-bold uppercase tracking-wider text-primary mt-2 block">
             Admin Console

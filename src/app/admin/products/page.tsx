@@ -156,7 +156,7 @@ export default function AdminProductsPage() {
         <div>
           <h2 className="text-xl font-bold text-dark-300">Product Catalog</h2>
           <p className="text-xs text-gray-500">
-            Manage, edit, and track your electronics inventory ({totalProducts || products.length} items total)
+            {totalProducts || products.length} products. Tick boxes to move, hide or delete several at once.
           </p>
         </div>
         <div className="flex items-center gap-2">

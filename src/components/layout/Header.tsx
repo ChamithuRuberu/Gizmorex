@@ -6,7 +6,6 @@ import { Search, ShoppingCart, Heart, User, Menu, X, ChevronDown, LogOut, Packag
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useCategoryStore } from '@/store/categoryStore';
-import { useNavItems } from '@/components/layout/useNavItems';
 import { useRouter } from 'next/navigation';
 
 export default function Header() {
@@ -42,8 +41,6 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const navItems = useNavItems();
-
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -59,13 +56,7 @@ export default function Header() {
         <div className="flex items-center gap-4 py-3">
           {/* Logo */}
           <Link href="/" className="flex-shrink-0 flex items-center gap-2">
-            <div className="relative w-36 h-10 hidden sm:block">
-              <Image src="/logo.jpg" alt="Gizmorex" fill className="object-contain" priority />
-            </div>
-            <span className="sm:hidden text-2xl font-black tracking-tight">
-              <span className="text-primary">GIZMO</span>
-              <span className="text-dark-300">REX</span>
-            </span>
+            <Image src="/logo-wordmark.png" alt="Gizmorex" width={887} height={163} priority className="h-6 sm:h-7 w-auto" />
           </Link>
 
           {/* Search Bar */}
@@ -76,11 +67,18 @@ export default function Header() {
               className="hidden lg:block bg-gray-50 border-r border-gray-200 px-3 py-2.5 text-sm text-gray-600 focus:outline-none cursor-pointer max-w-[160px] truncate"
             >
               <option value="">All Categories</option>
-              {categories.map(c => (
-                <option key={c.slug} value={c.slug}>
-                  {c.name}
-                </option>
-              ))}
+              {categories.filter(c => c.productCount > 0).map(c =>
+                c.children?.some(s => s.productCount > 0) ? (
+                  <optgroup key={c.slug} label={c.name}>
+                    <option value={c.slug}>All {c.name}</option>
+                    {c.children.filter(s => s.productCount > 0).map(s => (
+                      <option key={s.slug} value={s.slug}>{s.name}</option>
+                    ))}
+                  </optgroup>
+                ) : (
+                  <option key={c.slug} value={c.slug}>{c.name}</option>
+                )
+              )}
             </select>
             <input
               type="text"
@@ -180,17 +178,31 @@ export default function Header() {
       {/* Mobile Nav Menu */}
       {isMobileMenuOpen && (
         <div className="md:hidden border-t border-gray-100 bg-white animate-slide-up shadow-lg">
-          <div className="container-custom py-3 flex flex-col gap-1">
-            {navItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsMobileMenuOpen(false)}
-                className="px-3 py-2.5 text-sm font-medium text-gray-700 hover:text-primary hover:bg-orange-50 rounded-lg transition-colors"
-              >
-                {item.label}
-              </Link>
+          <div className="container-custom py-3 flex flex-col gap-1 max-h-[70vh] overflow-y-auto">
+            <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="px-3 py-2.5 text-sm font-semibold text-gray-800 hover:text-primary hover:bg-orange-50 rounded-lg">
+              Home
+            </Link>
+            {categories.filter(c => c.productCount > 0).map(c => (
+              <details key={c.slug} className="group rounded-lg">
+                <summary className="list-none flex items-center justify-between px-3 py-2.5 text-sm font-semibold text-gray-800 hover:bg-orange-50 rounded-lg cursor-pointer">
+                  {c.name}
+                  <ChevronDown className="w-4 h-4 text-gray-400 group-open:rotate-180 transition-transform" />
+                </summary>
+                <div className="pl-3 pb-2 flex flex-col">
+                  <Link href={`/categories/${c.slug}`} onClick={() => setIsMobileMenuOpen(false)} className="px-3 py-2 text-sm text-primary font-medium">
+                    All {c.name} ({c.productCount})
+                  </Link>
+                  {c.children?.filter(s => s.productCount > 0).map(s => (
+                    <Link key={s.slug} href={`/categories/${s.slug}`} onClick={() => setIsMobileMenuOpen(false)} className="px-3 py-2 text-sm text-gray-600 hover:text-primary">
+                      {s.name} <span className="text-gray-400">({s.productCount})</span>
+                    </Link>
+                  ))}
+                </div>
+              </details>
             ))}
+            <Link href="/products?deals=true" onClick={() => setIsMobileMenuOpen(false)} className="px-3 py-2.5 text-sm font-semibold text-primary hover:bg-orange-50 rounded-lg">
+              Deals
+            </Link>
           </div>
         </div>
       )}
