@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ status: 'received' });
     }
     order.paymentStatus = 'paid';
+    order.orderStatus = 'confirmed';
     order.paidAt = new Date();
     order.gatewayTransactionId = String(tx.id || payload.transaction_id || '') || undefined;
     order.failureReason = undefined;

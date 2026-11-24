@@ -51,6 +51,7 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     if (!form.fullName || !form.phone || !form.addressLine1 || !form.city) {
       toast.error('Please fill in all required fields');
       return;
@@ -79,15 +80,42 @@ export default function CheckoutPage() {
         const dp = new window.DirectPayIpg.Init({
           signature: directpay.signature,
           dataString: directpay.dataString,
-          stage: directpay.stage,
+          stage: directpay.stage || 'DEV',
         });
-        try {
-          await dp.doInAppCheckout();
-        } catch {
-          // Closing the window or a card error still goes to the status page,
-          // which reads the real result from the server.
-        }
-        router.push(statusUrl);
+
+        const report = (status: 'FAILED' | 'CANCELLED', message?: string) =>
+          fetch('/api/directpay/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order_id: orderNumber, token: statusToken, status, message }),
+          }).catch(() => {});
+        const failUrl = (reason: string) =>
+          `/checkout/fail?order=${encodeURIComponent(orderNumber)}&token=${statusToken}&reason=${encodeURIComponent(reason.slice(0, 120))}`;
+
+        dp.doInAppCheckout()
+          .then(async (result: any) => {
+            const status = String(result?.transaction?.status || '').toLowerCase();
+            if (['success', 'paid', 'successful'].includes(status)) {
+              // The browser's word is not proof of payment: the status page waits for
+              // DirectPay's signed server notification before showing success.
+              router.push(statusUrl);
+            } else if (status === 'failed' || status === 'fail') {
+              const reason = result?.transaction?.message || 'Card payment declined';
+              await report('FAILED', reason);
+              router.push(failUrl(reason));
+            } else {
+              await report('CANCELLED');
+              router.push(`/checkout/cancel?order=${encodeURIComponent(orderNumber)}&token=${statusToken}`);
+            }
+          })
+          .catch(async (error: any) => {
+            console.error('DirectPay in-app checkout error:', JSON.stringify(error));
+            const reason =
+              error?.data?.message || error?.data?.title || error?.message ||
+              (typeof error === 'string' ? error : '') || 'Payment processing was interrupted';
+            await report('FAILED', reason);
+            router.push(failUrl(reason));
+          });
         return;
       }
 
