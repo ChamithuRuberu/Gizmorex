@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  transpilePackages: ['react-hot-toast'],
   images: {
     unoptimized: true,
     remotePatterns: [

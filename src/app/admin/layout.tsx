@@ -12,6 +12,7 @@ import {
   Star,
   LogOut,
   ImageIcon,
+  Tag,
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -84,6 +85,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             <ImageIcon className="w-4 h-4" />
             Banners
+          </Link>
+          <Link
+            href="/admin/brands"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              isActive('/admin/brands')
+                ? 'bg-[#FF6B00] text-white'
+                : 'text-gray-300 hover:bg-dark-400 hover:text-white'
+            }`}
+          >
+            <Tag className="w-4 h-4" />
+            Brands
           </Link>
           <Link
             href="/admin/orders"

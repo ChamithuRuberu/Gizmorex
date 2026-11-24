@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 80" width="320" height="80">
+  <!-- Baseus Yellow Circle Icon -->
+  <g transform="translate(10, 5)">
+    <circle cx="35" cy="35" r="35" fill="#FFDC00"/>
+    <!-- Stylized 'b' -->
+    <path d="M37 18 C33 18 30 20 28 23 L28 12 L20 13 L20 48 C20 53 23 57 28 58 C32 59 36 57 38 54 C45 52 50 45 50 36 C50 26 44 18 37 18 Z M34 44 C29 44 26 40 26 35 C26 30 29 26 34 26 C39 26 42 30 42 35 C42 40 39 44 34 44 Z" fill="#000000"/>
+    <path d="M21 53 C25 56 31 58 37 58 C43 58 48 56 52 53 C53 51 51 49 49 50 C45 53 41 54 37 54 C32 54 28 53 24 50 C22 49 20 51 21 53 Z" fill="#000000"/>
+  </g>
+  <!-- Baseus Wordmark -->
+  <text x="95" y="52" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif" font-size="44" font-weight="900" letter-spacing="-1.5" fill="#000000">Baseus</text>
+</svg>

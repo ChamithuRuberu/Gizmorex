@@ -1,15 +1,27 @@
 import mongoose from 'mongoose';
-import dns from 'dns';
+import dns from 'node:dns';
 
 /**
  * Standard Next.js + Mongoose connection: one cached connection per server
  * instance, reused across requests and hot reloads.
  */
 
-// Some local ISP routers fail Atlas SRV lookups; use public DNS in development only.
-if (process.env.NODE_ENV !== 'production') {
+// Some ISP routers refuse the SRV lookup that mongodb+srv:// needs ("querySrv ECONNREFUSED").
+// Resolve through public DNS: always in development, and in production only if MONGODB_DNS is set
+// (comma-separated servers, e.g. "8.8.8.8,1.1.1.1"; set MONGODB_DNS=system to keep the OS resolver).
+const dnsSetting = process.env.MONGODB_DNS?.trim();
+const dnsServers =
+  dnsSetting === 'system'
+    ? null
+    : dnsSetting
+      ? dnsSetting.split(',').map((s) => s.trim()).filter(Boolean)
+      : process.env.NODE_ENV !== 'production'
+        ? ['8.8.8.8', '1.1.1.1']
+        : null;
+if (dnsServers?.length) {
   try {
-    dns.setServers(['8.8.8.8', '1.1.1.1']);
+    dns.setServers(dnsServers);
+    dns.promises.setServers(dnsServers); // the MongoDB driver resolves SRV records with the promise API
   } catch {
     // not allowed in some environments; the system resolver is used instead
   }

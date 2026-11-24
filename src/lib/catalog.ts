@@ -3,6 +3,7 @@ import dbConnect from '@/lib/mongodb';
 import ProductModel from '@/models/Product';
 import CategoryModel from '@/models/Category';
 import BannerModel from '@/models/Banner';
+import BrandModel from '@/models/Brand';
 import type { Category, Product } from '@/types';
 
 /**
@@ -117,7 +118,10 @@ export type ProductSort = 'newest' | 'price-asc' | 'price-desc' | 'popular';
 export interface ProductQuery {
   category?: string;
   search?: string;
+  /** One brand, or several separated by commas. */
   brand?: string;
+  minPrice?: number;
+  maxPrice?: number;
   deals?: boolean;
   featured?: boolean;
   sort?: ProductSort;
@@ -136,33 +140,56 @@ const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 export async function listProducts(q: ProductQuery = {}) {
   await dbConnect();
-  const filter: Record<string, any> = { isActive: true };
+  const base: Record<string, any> = { isActive: true };
 
   if (q.category) {
     const { bySlug } = await getCategoryTree();
-    filter.category = { $in: categoryScope(q.category.toLowerCase(), bySlug) };
+    base.category = { $in: categoryScope(q.category.toLowerCase(), bySlug) };
   }
   if (q.search) {
     const rx = new RegExp(escapeRegex(q.search.trim().slice(0, 80)), 'i');
-    filter.$or = [{ name: rx }, { brand: rx }, { tags: rx }];
+    base.$or = [{ name: rx }, { brand: rx }, { tags: rx }];
   }
-  if (q.brand) filter.brand = new RegExp(`^${escapeRegex(q.brand)}$`, 'i');
-  if (q.deals) filter.isFlashDeal = true;
-  if (q.featured) filter.isFeatured = true;
+  if (q.deals) base.isFlashDeal = true;
+  if (q.featured) base.isFeatured = true;
+  if (q.minPrice || q.maxPrice) {
+    base.price = {
+      ...(q.minPrice ? { $gte: q.minPrice } : {}),
+      ...(q.maxPrice ? { $lte: q.maxPrice } : {}),
+    };
+  }
+
+  // Brand filter is applied on top, so the brand list can show every brand in the current view.
+  const brandList = (q.brand || '').split(',').map((b) => b.trim()).filter(Boolean).slice(0, 20);
+  const filter = brandList.length
+    ? { ...base, brand: { $in: brandList.map((b) => new RegExp(`^${escapeRegex(b)}$`, 'i')) } }
+    : base;
 
   const limit = Math.min(Math.max(q.limit ?? 24, 1), 100);
   const page = Math.max(q.page ?? 1, 1);
 
-  const [docs, total] = await Promise.all([
+  const [docs, total, brandFacets] = await Promise.all([
     ProductModel.find(filter)
       .sort(SORTS[q.sort ?? 'newest'])
       .skip((page - 1) * limit)
       .limit(limit)
       .lean(),
     ProductModel.countDocuments(filter),
+    ProductModel.aggregate<{ _id: string; count: number }>([
+      { $match: { ...base, brand: { $nin: ['', null, 'Generic'] } } },
+      { $group: { _id: '$brand', count: { $sum: 1 } } },
+      { $sort: { count: -1, _id: 1 } },
+      { $limit: 40 },
+    ]),
   ]);
 
-  return { products: docs.map(toProduct), total, page, pages: Math.max(Math.ceil(total / limit), 1) };
+  return {
+    products: docs.map(toProduct),
+    total,
+    page,
+    pages: Math.max(Math.ceil(total / limit), 1),
+    brands: brandFacets.map((b) => ({ name: b._id, count: b.count })),
+  };
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
@@ -192,6 +219,7 @@ export interface HomeBanner {
 }
 
 export interface BrandCount {
+  logo?: string;
   name: string;
   count: number;
 }
@@ -213,7 +241,7 @@ export async function getHomeData() {
       { $match: { isActive: true, brand: { $nin: ['', 'Generic'] } } },
       { $group: { _id: '$brand', count: { $sum: 1 } } },
       { $sort: { count: -1, _id: 1 } },
-      { $limit: 12 },
+      { $limit: 40 },
     ]),
     ProductModel.aggregate<{ pct: number }>([
       { $match: { isActive: true, stock: { $gt: 0 }, $expr: { $gt: ['$originalPrice', '$price'] } } },
@@ -255,6 +283,24 @@ export async function getHomeData() {
       link: b.link,
       buttonText: b.buttonText,
     })),
-    brands: brands.map((b): BrandCount => ({ name: b._id, count: b.count })),
+    brands: await withBrandSettings(brands),
   };
+}
+
+/** Merge saved logos/order from Admin → Brands; drop brands switched off there. Max 12. */
+async function withBrandSettings(counts: { _id: string; count: number }[]): Promise<BrandCount[]> {
+  const saved = await BrandModel.find().lean();
+  const byKey = new Map(saved.map((b: any) => [b.key, b]));
+  const byNorm = new Map(saved.map((b: any) => [String(b.key).toLowerCase().replace(/[^a-z0-9]/g, ''), b]));
+  return counts
+    .map((c) => {
+      const key = String(c._id).toLowerCase();
+      const normKey = key.replace(/[^a-z0-9]/g, '');
+      const s = (byKey.get(key) || byNorm.get(normKey)) as any;
+      return { c, s };
+    })
+    .filter(({ s }) => !s || s.isActive !== false)
+    .sort((a, b) => (a.s?.sortOrder ?? 0) - (b.s?.sortOrder ?? 0) || Number(Boolean(b.s?.logo)) - Number(Boolean(a.s?.logo)) || b.c.count - a.c.count)
+    .slice(0, 12)
+    .map(({ c, s }) => ({ name: s?.name || c._id, count: c.count, logo: s?.logo || '' }));
 }
