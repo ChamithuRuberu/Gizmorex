@@ -12,6 +12,7 @@ import {
   Grid3x3,
   Star,
   LogOut,
+  ImageIcon,
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -72,6 +73,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           >
             <Grid3x3 className="w-4 h-4" />
             Categories
+          </Link>
+          <Link
+            href="/admin/banners"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              isActive('/admin/banners')
+                ? 'bg-[#FF6B00] text-white'
+                : 'text-gray-300 hover:bg-dark-400 hover:text-white'
+            }`}
+          >
+            <ImageIcon className="w-4 h-4" />
+            Banners
           </Link>
           <Link
             href="/admin/orders"

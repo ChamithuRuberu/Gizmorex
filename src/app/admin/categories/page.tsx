@@ -8,7 +8,6 @@ import {
   Edit2,
   Trash2,
   Package,
-  Sparkles,
   Upload,
   X,
   ExternalLink,
@@ -96,22 +95,6 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  const handleSeed = async () => {
-    const toastId = toast.loading('Syncing categories...');
-    try {
-      const res = await fetch('/api/admin/seed', { method: 'POST' });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message, { id: toastId });
-        await fetchCategories();
-        broadcastCategoryUpdate();
-      } else {
-        toast.error(data.error, { id: toastId });
-      }
-    } catch {
-      toast.error('Could not sync categories', { id: toastId });
-    }
-  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -262,14 +245,6 @@ export default function AdminCategoriesPage() {
         </div>
         <div className="flex items-center gap-2">
           <button
-            onClick={handleSeed}
-            className="btn-outline text-xs py-2 px-3 flex items-center gap-1.5"
-            title="Create the standard category tree and move products off old categories"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            Sync categories
-          </button>
-          <button
             onClick={() => {
               resetForm();
               setShowModal(true);
@@ -288,11 +263,8 @@ export default function AdminCategoriesPage() {
           <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
           <h3 className="font-bold text-dark-300 mb-1">No categories in database</h3>
           <p className="text-xs text-gray-400 mb-4">
-            Click below to create the standard category tree (parents and sub-categories).
+            Add a category with the button above, or import the catalog with <code>npm run import:ido</code>.
           </p>
-          <button onClick={handleSeed} className="btn-primary text-xs py-2 px-4 mx-auto inline-flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" /> Sync categories
-          </button>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">

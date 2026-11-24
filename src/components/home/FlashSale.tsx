@@ -10,15 +10,15 @@ import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import toast from 'react-hot-toast';
 
-interface DarazFlashSaleProps {
+interface FlashSaleProps {
   products?: Product[];
 }
 
-function DarazTimer({ endsAt }: { endsAt?: string }) {
+function Countdown({ endsAt }: { endsAt?: string }) {
   const [time, setTime] = useState({ h: 8, m: 24, s: 19 });
 
   useEffect(() => {
-    const target = endsAt ? new Date(endsAt).getTime() : Date.now() + 8 * 3600 * 1000;
+    const target = endsAt ? new Date(endsAt).getTime() : Date.now();
     const update = () => {
       const diff = Math.max(0, target - Date.now());
       setTime({
@@ -51,14 +51,15 @@ function DarazTimer({ endsAt }: { endsAt?: string }) {
   );
 }
 
-export default function DarazFlashSale({ products = [] }: DarazFlashSaleProps) {
+export default function FlashSale({ products = [] }: FlashSaleProps) {
   const addItem = useCartStore((s) => s.addItem);
   const openCart = useCartStore((s) => s.openCart);
   const { toggle, isWishlisted } = useWishlistStore();
 
   if (!products || products.length === 0) return null;
 
-  const firstEndsAt = products[0]?.flashDealEndsAt;
+  // Countdown only when the deal has a real end date in the future.
+  const firstEndsAt = products.map((p) => p.flashDealEndsAt).find((d) => d && new Date(d).getTime() > Date.now());
 
   const handleAddToCart = (e: React.MouseEvent, product: Product) => {
     e.preventDefault();
@@ -72,7 +73,7 @@ export default function DarazFlashSale({ products = [] }: DarazFlashSaleProps) {
       <div className="container-custom">
         {/* Section Container */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-4 sm:p-5">
-          {/* Daraz Flash Sale Top Bar */}
+          {/* Header */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-gray-100 mb-4">
             <div className="flex flex-wrap items-center gap-3">
               <h2 className="text-base sm:text-lg font-black text-primary uppercase tracking-tight flex items-center gap-1.5">
@@ -82,7 +83,7 @@ export default function DarazFlashSale({ products = [] }: DarazFlashSaleProps) {
               <span className="text-xs font-semibold text-gray-500">
                 Ending in
               </span>
-              <DarazTimer endsAt={firstEndsAt} />
+              {firstEndsAt && <Countdown endsAt={firstEndsAt} />}
             </div>
 
             <Link
@@ -93,7 +94,7 @@ export default function DarazFlashSale({ products = [] }: DarazFlashSaleProps) {
             </Link>
           </div>
 
-          {/* Product Cards Grid (Daraz 6-column density on large screens) */}
+          {/* Product grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
             {products.slice(0, 6).map((product, idx) => {
               const discount =
@@ -104,8 +105,9 @@ export default function DarazFlashSale({ products = [] }: DarazFlashSaleProps) {
                   : 0;
 
               const wishlisted = isWishlisted(product._id);
-              const soldCount = product.sold > 0 ? product.sold : (idx * 7 + 12);
-              const progressPct = Math.min(95, Math.max(30, (idx * 16 + 50) % 95));
+              const soldCount = product.sold;
+              // Share of this deal's stock already sold (real numbers only).
+              const progressPct = soldCount > 0 ? Math.round((soldCount / (soldCount + product.stock)) * 100) : 0;
 
               return (
                 <div
@@ -170,16 +172,16 @@ export default function DarazFlashSale({ products = [] }: DarazFlashSaleProps) {
 
                     {/* Sold progress bar */}
                     <div className="mt-2.5 pt-2 border-t border-gray-100">
-                      <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1">
-                        <span className="font-semibold text-gray-600">{soldCount} Sold</span>
-                        <span className="text-[9px] text-[#FF6B00] font-bold">Fast Selling</span>
-                      </div>
-                      <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className="bg-gradient-to-r from-orange-400 to-[#FF6B00] h-1.5 rounded-full"
-                          style={{ width: `${progressPct}%` }}
-                        />
-                      </div>
+                      {soldCount > 0 && (
+                        <>
+                          <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1">
+                            <span className="font-semibold text-gray-600">{soldCount} sold</span>
+                          </div>
+                          <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                            <div className="bg-[#FF6B00] h-1.5 rounded-full" style={{ width: `${progressPct}%` }} />
+                          </div>
+                        </>
+                      )}
 
                       {/* Quick Add To Cart Button */}
                       <button

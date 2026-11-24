@@ -1,5 +1,5 @@
 import CategoryModel from '@/models/Category';
-import { slugify } from '@/lib/taxonomy';
+import { slugify } from '@/lib/slugify';
 import { InputError } from '@/lib/product-input';
 
 const str = (v: unknown, max = 500) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
