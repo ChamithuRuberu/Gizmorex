@@ -1,6 +1,5 @@
 import HomeHero from '@/components/home/HomeHero';
 import FlashSale from '@/components/home/FlashSale';
-import CategoryGrid from '@/components/home/CategoryGrid';
 import JustForYou from '@/components/home/JustForYou';
 import BrandStrip from '@/components/home/BrandStrip';
 import { getHomeData } from '@/lib/catalog';
@@ -20,7 +19,6 @@ export default async function HomePage() {
     <div className="bg-[#F5F5F5] min-h-screen flex flex-col space-y-2 pb-12">
       <HomeHero categories={data.categories} banners={data.banners} />
       <FlashSale products={data.flashDeals} />
-      <CategoryGrid categories={data.categories} />
       <JustForYou products={forYou} categories={data.categories} />
       <BrandStrip brands={data.brands} />
     </div>
