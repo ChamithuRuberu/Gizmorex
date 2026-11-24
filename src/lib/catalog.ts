@@ -291,8 +291,14 @@ export async function getHomeData() {
 async function withBrandSettings(counts: { _id: string; count: number }[]): Promise<BrandCount[]> {
   const saved = await BrandModel.find().lean();
   const byKey = new Map(saved.map((b: any) => [b.key, b]));
+  const byNorm = new Map(saved.map((b: any) => [String(b.key).toLowerCase().replace(/[^a-z0-9]/g, ''), b]));
   return counts
-    .map((c) => ({ c, s: byKey.get(String(c._id).toLowerCase()) as any }))
+    .map((c) => {
+      const key = String(c._id).toLowerCase();
+      const normKey = key.replace(/[^a-z0-9]/g, '');
+      const s = (byKey.get(key) || byNorm.get(normKey)) as any;
+      return { c, s };
+    })
     .filter(({ s }) => !s || s.isActive !== false)
     .sort((a, b) => (a.s?.sortOrder ?? 0) - (b.s?.sortOrder ?? 0) || Number(Boolean(b.s?.logo)) - Number(Boolean(a.s?.logo)) || b.c.count - a.c.count)
     .slice(0, 12)

@@ -49,7 +49,7 @@ export async function PUT(request: NextRequest) {
     if (typeof body.name === 'string' && body.name.trim()) set.name = body.name.trim().slice(0, 80);
     if (typeof body.logo === 'string') {
       const logo = body.logo.trim();
-      if (logo && !/^https:\/\/res\.cloudinary\.com\//.test(logo)) {
+      if (logo && !/^https:\/\/res\.cloudinary\.com\//.test(logo) && !/^\/brands\//.test(logo)) {
         return NextResponse.json({ success: false, error: 'Upload the logo here so it is stored on Cloudinary' }, { status: 400 });
       }
       set.logo = logo;
