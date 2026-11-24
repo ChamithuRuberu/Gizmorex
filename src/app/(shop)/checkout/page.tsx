@@ -51,6 +51,7 @@ export default function CheckoutPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
     if (!form.fullName || !form.phone || !form.addressLine1 || !form.city) {
       toast.error('Please fill in all required fields');
       return;
@@ -82,46 +83,38 @@ export default function CheckoutPage() {
           stage: directpay.stage || 'DEV',
         });
 
+        const report = (status: 'FAILED' | 'CANCELLED', message?: string) =>
+          fetch('/api/directpay/status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ order_id: orderNumber, token: statusToken, status, message }),
+          }).catch(() => {});
+        const failUrl = (reason: string) =>
+          `/checkout/fail?order=${encodeURIComponent(orderNumber)}&token=${statusToken}&reason=${encodeURIComponent(reason.slice(0, 120))}`;
+
         dp.doInAppCheckout()
           .then(async (result: any) => {
-            console.log('DirectPay payment result:', result);
-            const status = result?.transaction?.status?.toLowerCase();
-
-            if (status === 'success' || status === 'paid' || status === 'successful') {
-              await fetch('/api/directpay/status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ order_id: orderNumber, status: 'SUCCESS' }),
-              });
-              clearCart();
-              router.push(`/checkout/success?gateway=directpay&order_id=${encodeURIComponent(orderNumber)}`);
+            const status = String(result?.transaction?.status || '').toLowerCase();
+            if (['success', 'paid', 'successful'].includes(status)) {
+              // The browser's word is not proof of payment: the status page waits for
+              // DirectPay's signed server notification before showing success.
+              router.push(statusUrl);
             } else if (status === 'failed' || status === 'fail') {
-              const failureReason = result?.transaction?.message || 'Card payment declined';
-              await fetch('/api/directpay/status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ order_id: orderNumber, status: 'FAILED', message: failureReason }),
-              });
-              router.push(`/checkout/fail?gateway=directpay&order_id=${encodeURIComponent(orderNumber)}&reason=${encodeURIComponent(failureReason)}`);
+              const reason = result?.transaction?.message || 'Card payment declined';
+              await report('FAILED', reason);
+              router.push(failUrl(reason));
             } else {
-              // User closed or cancelled modal
-              await fetch('/api/directpay/status', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ order_id: orderNumber, status: 'CANCELLED' }),
-              });
-              router.push(`/checkout/cancel?gateway=directpay&order_id=${encodeURIComponent(orderNumber)}`);
+              await report('CANCELLED');
+              router.push(`/checkout/cancel?order=${encodeURIComponent(orderNumber)}&token=${statusToken}`);
             }
           })
           .catch(async (error: any) => {
-            console.error('DirectPay in-app checkout error:', error);
-            const reason = error?.message || 'Payment processing was interrupted';
-            await fetch('/api/directpay/status', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ order_id: orderNumber, status: 'FAILED', message: reason }),
-            });
-            router.push(`/checkout/fail?gateway=directpay&order_id=${encodeURIComponent(orderNumber)}&reason=${encodeURIComponent(reason)}`);
+            console.error('DirectPay in-app checkout error:', JSON.stringify(error));
+            const reason =
+              error?.data?.message || error?.data?.title || error?.message ||
+              (typeof error === 'string' ? error : '') || 'Payment processing was interrupted';
+            await report('FAILED', reason);
+            router.push(failUrl(reason));
           });
         return;
       }

@@ -8,7 +8,7 @@ import { BRAND } from '@/lib/constants';
 
 function FailContent() {
   const searchParams = useSearchParams();
-  const orderId = searchParams.get('order_id') || searchParams.get('orderNumber') || '';
+  const orderId = searchParams.get('order') || '';
   const reason = searchParams.get('reason') || 'Transaction declined by bank or gateway';
 
   const wa = `https://wa.me/${BRAND.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(

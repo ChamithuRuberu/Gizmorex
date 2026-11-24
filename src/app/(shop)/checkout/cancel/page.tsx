@@ -8,7 +8,7 @@ import { BRAND } from '@/lib/constants';
 
 function CancelContent() {
   const searchParams = useSearchParams();
-  const orderId = searchParams.get('order_id') || searchParams.get('orderNumber') || '';
+  const orderId = searchParams.get('order') || '';
 
   const wa = `https://wa.me/${BRAND.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(
     `Hi Gizmorex, I cancelled my card payment for order ${orderId || 'checkout'}. Can you help me complete it?`

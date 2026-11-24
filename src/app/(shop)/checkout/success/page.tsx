@@ -10,7 +10,8 @@ import { formatPrice } from '@/lib/utils';
 
 function SuccessContent() {
   const searchParams = useSearchParams();
-  const orderId = searchParams.get('order_id') || searchParams.get('orderNumber') || '';
+  const orderId = searchParams.get('order') || '';
+  const token = searchParams.get('token') || '';
   const clearCart = useCartStore((s) => s.clearCart);
 
   const [orderDetails, setOrderDetails] = useState<{ total?: number; status?: string } | null>(null);
@@ -18,16 +19,16 @@ function SuccessContent() {
   useEffect(() => {
     clearCart();
     if (orderId) {
-      fetch(`/api/directpay/status?order_id=${encodeURIComponent(orderId)}`)
+      fetch(`/api/orders/${encodeURIComponent(orderId)}/status?token=${encodeURIComponent(token)}`, { cache: 'no-store' })
         .then((r) => r.json())
         .then((data) => {
           if (data.success) {
-            setOrderDetails({ total: data.total, status: data.status });
+            setOrderDetails({ total: data.data.total, status: data.data.paymentStatus });
           }
         })
         .catch(() => {});
     }
-  }, [orderId, clearCart]);
+  }, [orderId, token, clearCart]);
 
   const wa = `https://wa.me/${BRAND.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(
     `Hi Gizmorex, I just completed DirectPay payment for order ${orderId}`
@@ -108,7 +109,7 @@ function SuccessContent() {
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
           {orderId && (
             <a
-              href={`/api/directpay/receipt?order_id=${encodeURIComponent(orderId)}`}
+              href={`/api/directpay/receipt?order_id=${encodeURIComponent(orderId)}&token=${encodeURIComponent(token)}`}
               className="btn-outline w-full sm:w-auto text-xs py-3 px-5 inline-flex items-center justify-center gap-2"
             >
               <Download className="w-4 h-4" /> Download Receipt

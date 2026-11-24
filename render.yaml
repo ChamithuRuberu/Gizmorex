@@ -42,4 +42,4 @@ services:
       - key: DIRECTPAY_SECRET_KEY
         sync: false
       - key: DIRECTPAY_STAGE
-        value: DEV
+        value: PROD

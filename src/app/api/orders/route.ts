@@ -13,6 +13,17 @@ export const dynamic = 'force-dynamic';
 const METHODS = ['cod', 'bank', 'directpay'] as const;
 type Method = (typeof METHODS)[number];
 
+// Best-effort per-IP limit (in-memory, per server instance): slows order spam and card testing.
+const hits = new Map<string, number[]>();
+function rateLimited(ip: string, max = 8, windowMs = 10 * 60 * 1000) {
+  const now = Date.now();
+  const recent = (hits.get(ip) || []).filter((t) => now - t < windowMs);
+  recent.push(now);
+  hits.set(ip, recent);
+  if (hits.size > 5000) for (const [k, v] of hits) if (!v.some((t) => now - t < windowMs)) hits.delete(k);
+  return recent.length > max;
+}
+
 const clean = (v: unknown, max = 200) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
 
 /**
@@ -21,6 +32,11 @@ const clean = (v: unknown, max = 200) => (typeof v === 'string' ? v.trim().slice
  * Prices, totals and stock are taken from the database; anything price-like in the body is ignored.
  */
 export async function POST(request: Request) {
+  const ip = (request.headers.get('x-nf-client-connection-ip') || request.headers.get('x-forwarded-for') || 'unknown').split(',')[0].trim();
+  if (rateLimited(ip)) {
+    return NextResponse.json({ success: false, error: 'Too many attempts. Please wait a few minutes.' }, { status: 429 });
+  }
+
   let body: any;
   try {
     body = await request.json();

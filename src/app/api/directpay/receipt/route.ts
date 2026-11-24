@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import crypto from 'crypto';
 import dbConnect from '@/lib/mongodb';
 import Order from '@/models/Order';
 import { formatPrice } from '@/lib/utils';
@@ -13,16 +14,18 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const order_id = searchParams.get('order_id') || searchParams.get('orderNumber');
-
-    if (!order_id) {
-      return new NextResponse('Order ID is required', { status: 400 });
-    }
+    const order_id = searchParams.get('order_id') || searchParams.get('orderNumber') || '';
+    const token = searchParams.get('token') || '';
 
     await dbConnect();
-    const order = (await Order.findOne({ orderNumber: order_id }).lean()) as any;
+    const order = (await Order.findOne({ orderNumber: order_id.slice(0, 40) })
+      .select('+statusToken')
+      .lean()) as any;
 
-    if (!order) {
+    // Receipt holds personal details: needs the secret token and a settled payment.
+    const a = Buffer.from(token);
+    const b = Buffer.from(order?.statusToken || '');
+    if (!order || !token || a.length !== b.length || !crypto.timingSafeEqual(a, b) || order.paymentStatus !== 'paid') {
       return new NextResponse('Order not found', { status: 404 });
     }
 
