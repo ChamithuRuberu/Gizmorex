@@ -215,7 +215,7 @@ export async function getHomeData() {
     flashDeals: flash.map(toProduct),
     featured: featured.map(toProduct),
     latest: latest.map(toProduct),
-    categories: tree.filter((c) => c.productCount > 0),
+    categories: tree, // every active category, even before it has products
     banners: banners.map((b): HomeBanner => ({
       _id: String(b._id),
       title: b.title,

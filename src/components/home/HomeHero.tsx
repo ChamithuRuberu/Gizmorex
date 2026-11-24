@@ -37,7 +37,7 @@ export default function HomeHero({ categories, banners }: { categories: Category
           </div>
           <ul className="flex-1">
             {categories.slice(0, 10).map((cat) => {
-              const subs = cat.children?.filter((c) => c.productCount > 0) ?? [];
+              const subs = cat.children ?? [];
               return (
                 <li key={cat.slug} className="group/cat">
                   <Link
@@ -64,7 +64,7 @@ export default function HomeHero({ categories, banners }: { categories: Category
                     <div className="invisible opacity-0 group-hover/cat:visible group-hover/cat:opacity-100 transition-opacity absolute left-full top-0 z-30 ml-2 h-full w-[min(640px,62vw)] bg-white rounded-2xl border border-gray-100 shadow-xl p-5 overflow-y-auto">
                       <Link href={`/categories/${cat.slug}`} className="flex items-baseline justify-between mb-3">
                         <span className="font-black text-dark-300">{cat.name}</span>
-                        <span className="text-xs font-bold text-primary hover:underline">View all {cat.productCount}</span>
+                        <span className="text-xs font-bold text-primary hover:underline">View all</span>
                       </Link>
                       <div className="grid grid-cols-3 gap-1">
                         {subs.map((s) => (
@@ -78,7 +78,7 @@ export default function HomeHero({ categories, banners }: { categories: Category
                             </span>
                             <span className="flex-1 min-w-0">
                               <span className="block text-sm font-semibold text-gray-800 group-hover/sub:text-primary truncate">{s.name}</span>
-                              <span className="block text-[11px] text-gray-400">{s.productCount} {s.productCount === 1 ? 'item' : 'items'}</span>
+                              <span className="block text-[11px] text-gray-400">{s.productCount > 0 ? `${s.productCount} ${s.productCount === 1 ? 'item' : 'items'}` : 'Coming soon'}</span>
                             </span>
                           </Link>
                         ))}

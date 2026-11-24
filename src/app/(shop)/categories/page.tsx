@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: 'All Categories | Gizmorex' };
 
 export default async function CategoriesPage() {
   const { tree } = await getCategoryTree();
-  const categories = tree.filter((c) => c.productCount > 0);
+  const categories = tree;
 
   return (
     <div className="container-custom py-6">
@@ -25,17 +25,15 @@ export default async function CategoriesPage() {
               </span>
               <span>
                 <span className="block font-bold text-dark-300 group-hover:text-primary">{cat.name}</span>
-                <span className="text-xs text-gray-500">{cat.productCount} products</span>
+                <span className="text-xs text-gray-500">{cat.productCount > 0 ? `${cat.productCount} products` : 'Coming soon'}</span>
               </span>
             </Link>
             <ul className="mt-4 space-y-1.5">
-              {cat.children
-                ?.filter((c) => c.productCount > 0)
-                .map((sub) => (
+              {cat.children?.map((sub) => (
                   <li key={sub.slug}>
                     <Link href={`/categories/${sub.slug}`} className="flex justify-between text-sm text-gray-600 hover:text-primary">
                       <span>{sub.name}</span>
-                      <span className="text-gray-400">{sub.productCount}</span>
+                      {sub.productCount > 0 && <span className="text-gray-400">{sub.productCount}</span>}
                     </Link>
                   </li>
                 ))}

@@ -25,7 +25,7 @@ export default async function CategoryPage({ params }: Props) {
 
   const parent = category.parentSlug ? bySlug.get(category.parentSlug) : undefined;
   // Sub-category chips: a parent shows its children, a sub-category shows its siblings.
-  const chips = (parent ?? category).children?.filter((c) => c.productCount > 0) ?? [];
+  const chips = (parent ?? category).children ?? [];
   const { products, total } = await listProducts({ category: category.slug, limit: 100 });
 
   return (
@@ -67,7 +67,7 @@ export default async function CategoryPage({ params }: Props) {
               href={`/categories/${c.slug}`}
               className={`px-3 py-1.5 rounded-full text-sm border ${c.slug === category.slug ? 'bg-primary text-white border-primary' : 'bg-white border-gray-200 hover:border-primary'}`}
             >
-              {c.name} <span className="opacity-70">({c.productCount})</span>
+              {c.name} {c.productCount > 0 && <span className="opacity-70">({c.productCount})</span>}
             </Link>
           ))}
         </nav>

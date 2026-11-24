@@ -15,11 +15,11 @@ export default function CategoryGrid({ categories }: CategoryGridProps) {
   // Shop by the specific sub-categories (what people actually look for), busiest first.
   const displayCategories = categories
     .flatMap((c) => {
-      const subs = (c.children ?? []).filter((s) => s.productCount > 0);
+      const subs = c.children ?? [];
       return subs.length ? subs : [c];
     })
     .sort((a, b) => b.productCount - a.productCount)
-    .slice(0, 16);
+    .slice(0, 24);
 
   return (
     <section className="py-4 bg-gray-50">

@@ -16,7 +16,8 @@ export default function Navbar() {
     fetchCategories();
   }, [fetchCategories]);
 
-  const tops = categories.filter((c) => c.productCount > 0);
+  // Every active category from Admin shows; the first few sit in the bar, the rest under All categories.
+  const tops = categories.slice(0, 5);
   const linkCls = (active: boolean) =>
     `whitespace-nowrap px-4 py-3 text-sm font-medium transition-colors border-b-2 inline-flex items-center gap-1 ${
       active ? 'text-primary border-primary font-semibold' : 'text-gray-700 border-transparent hover:text-primary'
@@ -32,7 +33,7 @@ export default function Navbar() {
             </Link>
           </li>
           {tops.map((cat) => {
-            const subs = cat.children?.filter((c) => c.productCount > 0) ?? [];
+            const subs = cat.children ?? [];
             const active =
               pathname === `/categories/${cat.slug}` || subs.some((s) => pathname === `/categories/${s.slug}`);
             return (
@@ -53,7 +54,7 @@ export default function Navbar() {
                           >
                             <CategoryIcon name={s.icon} label={s.name} className="w-4 h-4 text-gray-400" />
                             <span className="flex-1 truncate">{s.name}</span>
-                            <span className="text-xs text-gray-400">{s.productCount}</span>
+                            {s.productCount > 0 && <span className="text-xs text-gray-400">{s.productCount}</span>}
                           </Link>
                         ))}
                       </div>
@@ -61,7 +62,7 @@ export default function Navbar() {
                         href={`/categories/${cat.slug}`}
                         className="mt-2 block text-center text-xs font-bold text-primary border-t border-gray-100 pt-2.5 hover:underline"
                       >
-                        View all {cat.productCount} in {cat.name}
+                        View all in {cat.name}
                       </Link>
                     </div>
                   </div>
