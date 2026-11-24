@@ -135,7 +135,7 @@ export default function AdminBannersPage() {
                 <p className="font-bold text-dark-300 truncate">{b.title}</p>
                 <p className="text-sm text-gray-500 truncate">{b.subtitle}</p>
                 <p className="text-xs text-gray-400 mt-1">
-                  #{b.sortOrder} · {b.buttonText} → <span className="font-mono">{b.link}</span>
+                  #{b.sortOrder} · click goes to <span className="font-mono">{b.link}</span>
                   {!b.isActive && <span className="ml-2 text-amber-700 font-semibold">Hidden</span>}
                 </p>
               </div>
@@ -161,29 +161,22 @@ export default function AdminBannersPage() {
             <h2 id="banner-form-title" className="text-lg font-bold text-dark-300">{editing ? 'Edit banner' : 'New banner'}</h2>
 
             <div>
-              <span className="block text-sm font-semibold text-gray-700 mb-1">Image * (wide, about 1600 × 700)</span>
+              <span className="block text-sm font-semibold text-gray-700 mb-1">Image * (wide, about 2100 × 700, text and buttons go in the image)</span>
               <ImageUpload images={form.image ? [form.image] : []} onChange={(imgs) => setForm({ ...form, image: imgs[0] || '' })} maxImages={1} />
             </div>
             <label className="block">
-              <span className="block text-sm font-semibold text-gray-700 mb-1">Title *</span>
-              <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="input-field" />
-            </label>
-            <label className="block">
-              <span className="block text-sm font-semibold text-gray-700 mb-1">Subtitle</span>
-              <input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} className="input-field" />
+              <span className="block text-sm font-semibold text-gray-700 mb-1">Name *</span>
+              <input required placeholder="e.g. UGREEN power deals" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="input-field" />
+              <span className="text-xs text-gray-500">Not shown on the banner; used for screen readers and this list.</span>
             </label>
             <div className="grid grid-cols-2 gap-3">
-              <label className="block">
-                <span className="block text-sm font-semibold text-gray-700 mb-1">Button text</span>
-                <input value={form.buttonText} onChange={(e) => setForm({ ...form, buttonText: e.target.value })} className="input-field" />
-              </label>
               <label className="block">
                 <span className="block text-sm font-semibold text-gray-700 mb-1">Order</span>
                 <input type="number" value={form.sortOrder} onChange={(e) => setForm({ ...form, sortOrder: Number(e.target.value) })} className="input-field" />
               </label>
             </div>
             <label className="block">
-              <span className="block text-sm font-semibold text-gray-700 mb-1">Link</span>
+              <span className="block text-sm font-semibold text-gray-700 mb-1">Link (where a click on the banner goes)</span>
               <input value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} className="input-field font-mono text-sm" placeholder="/categories/audio" />
               <span className="text-xs text-gray-500">A page on your site, e.g. /categories/keyboard-and-mouse or /products?deals=true</span>
             </label>
