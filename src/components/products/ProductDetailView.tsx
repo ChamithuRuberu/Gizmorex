@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
+import Link from 'next/link';
 import { ShoppingCart, Heart, Share2, Shield, Truck, RotateCcw, Star, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatPrice } from '@/lib/utils';
 import { BRAND, FREE_SHIPPING_THRESHOLD } from '@/lib/constants';
@@ -95,7 +96,11 @@ export default function ProductDetailView({ product, relatedProducts, categoryNa
 
             {/* Info */}
             <div>
-              <p className="text-sm text-primary font-semibold mb-1">{product.brand}</p>
+              {product.brand && product.brand !== 'Generic' && (
+                <Link href={`/products?brand=${encodeURIComponent(product.brand)}`} className="inline-block text-sm text-primary font-semibold mb-1 hover:underline">
+                  {product.brand}
+                </Link>
+              )}
               <h1 className="text-2xl font-bold text-dark-300 mb-3 leading-tight">{product.name}</h1>
 
               <div className="flex items-center gap-3 mb-4">
