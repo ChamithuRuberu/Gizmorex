@@ -33,3 +33,6 @@ next-env.d.ts
 # ide
 .idea/
 .vscode/
+
+# brand logo files are uploaded to Cloudinary, not committed
+/brand-logos/
