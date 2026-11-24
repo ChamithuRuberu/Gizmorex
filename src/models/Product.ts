@@ -21,6 +21,8 @@ export interface IProduct extends Document {
   isFlashDeal: boolean;
   isNewArrival?: boolean;
   flashDealEndsAt?: Date;
+  /** Where an imported product came from (e.g. ido.lk), for re-imports. */
+  source?: { name: string; id: number; url: string };
 }
 
 const ProductSchema = new Schema<IProduct>(
@@ -31,7 +33,8 @@ const ProductSchema = new Schema<IProduct>(
     price: { type: Number, required: true, min: 0 },
     originalPrice: { type: Number, required: true, min: 0 },
     images: [{ type: String }],
-    category: { type: String, required: true },
+    /** Sub-category slug (see Category). */
+    category: { type: String, required: true, lowercase: true, trim: true },
     brand: { type: String, required: true, trim: true },
     stock: { type: Number, default: 0, min: 0 },
     sold: { type: Number, default: 0 },
@@ -45,6 +48,7 @@ const ProductSchema = new Schema<IProduct>(
     isFlashDeal: { type: Boolean, default: false },
     isNewArrival: { type: Boolean, default: true },
     flashDealEndsAt: { type: Date },
+    source: { name: String, id: Number, url: String },
   },
   { timestamps: true }
 );
@@ -54,6 +58,6 @@ ProductSchema.index({ category: 1, price: 1 });
 ProductSchema.index({ isFeatured: 1 });
 ProductSchema.index({ isFlashDeal: 1 });
 
-export default mongoose.models.Product ||
+export default (mongoose.models.Product as mongoose.Model<IProduct>) ||
   mongoose.model<IProduct>('Product', ProductSchema);
 

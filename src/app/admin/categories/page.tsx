@@ -8,7 +8,6 @@ import {
   Edit2,
   Trash2,
   Package,
-  Sparkles,
   Upload,
   X,
   ExternalLink,
@@ -18,6 +17,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { broadcastCategoryUpdate } from '@/store/categoryStore';
+import CategoryIcon from '@/components/ui/CategoryIcon';
 
 interface Category {
   _id: string;
@@ -30,6 +30,7 @@ interface Category {
   productCount: number;
   isActive: boolean;
   sortOrder: number;
+  parentSlug?: string | null;
 }
 
 // Preset stock photos for rapid 1-click category setup
@@ -51,6 +52,8 @@ export default function AdminCategoriesPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -62,6 +65,7 @@ export default function AdminCategoriesPage() {
     icon: 'Package',
     color: '#FF6B00',
     sortOrder: 0,
+    parent: '',
   });
 
   useEffect(() => {
@@ -94,22 +98,6 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  const handleSeed = async () => {
-    const toastId = toast.loading('Populating default categories with photos...');
-    try {
-      const res = await fetch('/api/admin/seed', { method: 'POST' });
-      const data = await res.json();
-      if (data.success) {
-        toast.success(data.message || 'Categories created!', { id: toastId });
-        await fetchCategories();
-        broadcastCategoryUpdate();
-      } else {
-        toast.error(data.error || 'Failed to populate', { id: toastId });
-      }
-    } catch {
-      toast.error('Failed to populate categories', { id: toastId });
-    }
-  };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -202,6 +190,55 @@ export default function AdminCategoriesPage() {
     }
   };
 
+  const toggleOne = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const bulkDelete = async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    const chosen = categories.filter((c) => selected.has(c._id));
+    const withStuff = chosen.filter((c) => (c.productCount || 0) > 0 || categories.some((x) => x.parentSlug === c.slug));
+
+    let cascade = false;
+    if (withStuff.length > 0) {
+      cascade = confirm(
+        `${withStuff.length} of the ${ids.length} selected categor${ids.length === 1 ? 'y has' : 'ies have'} products or sub-categories.\n\n` +
+          `OK = delete them AND all their products and sub-categories (cannot be undone).\n` +
+          `Cancel = keep those, delete only the empty ones.`
+      );
+      if (cascade && !confirm('Last check: really delete these categories together with all their products?')) return;
+    } else if (!confirm(`Delete ${ids.length} empty categor${ids.length === 1 ? 'y' : 'ies'}?`)) {
+      return;
+    }
+
+    setBulkBusy(true);
+    const toastId = toast.loading('Deleting...');
+    try {
+      const res = await fetch('/api/admin/categories/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', ids, cascade }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message, { id: toastId, duration: 6000 });
+        setSelected(new Set());
+        await fetchCategories();
+        broadcastCategoryUpdate();
+      } else {
+        toast.error(data.error || 'Bulk delete failed', { id: toastId });
+      }
+    } catch {
+      toast.error('Bulk delete failed', { id: toastId });
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   const openEditModal = (category: Category) => {
     setEditingCategory(category);
     setFormData({
@@ -212,6 +249,7 @@ export default function AdminCategoriesPage() {
       icon: category.icon || 'Package',
       color: category.color || '#FF6B00',
       sortOrder: category.sortOrder || 0,
+      parent: category.parentSlug || '',
     });
     setShowModal(true);
   };
@@ -226,6 +264,7 @@ export default function AdminCategoriesPage() {
       icon: 'Package',
       color: '#FF6B00',
       sortOrder: 0,
+      parent: '',
     });
   };
 
@@ -253,18 +292,10 @@ export default function AdminCategoriesPage() {
         <div>
           <h1 className="text-2xl font-bold text-dark-300">Category Management</h1>
           <p className="text-sm text-gray-600">
-            Customize category titles, storefront photos, and product classifications ({categories.length} categories)
+            {categories.filter((c) => !c.parentSlug).length} main categories, {categories.filter((c) => c.parentSlug).length} sub-categories. Products belong to a sub-category.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={handleSeed}
-            className="btn-outline text-xs py-2 px-3 flex items-center gap-1.5"
-            title="Populate 8 default tech categories with photos"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            Populate 8 Categories
-          </button>
           <button
             onClick={() => {
               resetForm();
@@ -278,111 +309,78 @@ export default function AdminCategoriesPage() {
         </div>
       </div>
 
-      {/* Categories Grid */}
+      {selected.size > 0 && (
+        <div className="sticky top-2 z-20 bg-dark-300 text-white rounded-2xl px-4 py-3 flex flex-wrap items-center gap-3 shadow-lg">
+          <span className="text-sm font-bold">{selected.size} selected</span>
+          <button
+            disabled={bulkBusy}
+            onClick={bulkDelete}
+            className="text-xs font-bold bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg inline-flex items-center gap-1 disabled:opacity-50"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete selected
+          </button>
+          <button
+            onClick={() => setSelected(selected.size === categories.length ? new Set() : new Set(categories.map((c) => c._id)))}
+            className="text-xs font-semibold bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg"
+          >
+            {selected.size === categories.length ? 'Select none' : 'Select all'}
+          </button>
+          <button onClick={() => setSelected(new Set())} className="ml-auto text-xs text-gray-300 hover:text-white">
+            Clear
+          </button>
+        </div>
+      )}
+
+      {/* Categories, grouped: each top-level category with its sub-categories */}
       {categories.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center text-gray-500 border border-gray-100 max-w-md mx-auto">
           <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-          <h3 className="font-bold text-dark-300 mb-1">No categories in database</h3>
-          <p className="text-xs text-gray-400 mb-4">
-            Click below to populate the 8 standard categories with high-resolution photos into your database.
+          <h3 className="font-bold text-dark-300 mb-1">No categories yet</h3>
+          <p className="text-xs text-gray-400">
+            Add one with the button above, or import the catalog with <code>npm run import:ido</code>.
           </p>
-          <button onClick={handleSeed} className="btn-primary text-xs py-2 px-4 mx-auto inline-flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" /> Populate 8 Categories
-          </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {categories.map((category) => (
-            <div
-              key={category._id}
-              className="bg-white rounded-2xl border border-gray-100 shadow-card hover:shadow-lg transition-all overflow-hidden flex flex-col group"
-            >
-              {/* Category Photo Header */}
-              <div className="relative w-full h-40 bg-gray-100 overflow-hidden">
-                {category.image ? (
-                  <Image
-                    src={category.image}
-                    alt={category.name}
-                    fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    sizes="(max-width: 768px) 100vw, 300px"
+        <div className="space-y-4">
+          {categories
+            .filter((c) => !c.parentSlug)
+            .map((parent) => {
+              const subs = categories.filter((c) => c.parentSlug === parent.slug);
+              return (
+                <section key={parent._id} className="bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden">
+                  <CategoryRow
+                    category={parent}
+                    isParent
+                    subCount={subs.length}
+                    selected={selected.has(parent._id)}
+                    onToggle={() => toggleOne(parent._id)}
+                    onEdit={() => openEditModal(parent)}
+                    onDelete={() => handleDelete(parent._id, parent.name)}
+                    onAddSub={() => {
+                      resetForm();
+                      setFormData((f) => ({ ...f, parent: parent.slug }));
+                      setShowModal(true);
+                    }}
                   />
-                ) : (
-                  <div
-                    className="w-full h-full flex flex-col items-center justify-center p-4 text-center"
-                    style={{ backgroundColor: `${category.color || '#FF6B00'}15` }}
-                  >
-                    <ImageIcon className="w-10 h-10 mb-1 text-gray-400" />
-                    <span className="text-xs text-gray-500">No Photo Uploaded</span>
-                    <button
-                      onClick={() => openEditModal(category)}
-                      className="text-[11px] text-primary font-bold hover:underline mt-1"
-                    >
-                      + Add Photo
-                    </button>
-                  </div>
-                )}
-                {/* Product Count Pill */}
-                <div className="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">
-                  {category.productCount || 0} Products
-                </div>
-                {/* Actions Pill */}
-                <div className="absolute top-2.5 right-2.5 flex items-center gap-1 bg-white/90 backdrop-blur-md p-1 rounded-lg shadow-sm">
-                  <button
-                    onClick={() => openEditModal(category)}
-                    className="p-1 hover:bg-orange-50 hover:text-primary rounded text-gray-600 transition-colors"
-                    title="Edit Category & Photo"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(category._id, category.name)}
-                    className="p-1 hover:bg-red-50 hover:text-red-600 rounded text-gray-400 transition-colors"
-                    title="Delete Category"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Category Content */}
-              <div className="p-4 flex-1 flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <h3 className="font-bold text-dark-300 text-base">{category.name}</h3>
-                    <span
-                      className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                        category.isActive
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-gray-100 text-gray-600'
-                      }`}
-                    >
-                      {category.isActive ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                  <p className="text-xs text-gray-500 line-clamp-2 mb-3">
-                    {category.description || 'Browse high-quality electronics in this category.'}
-                  </p>
-                </div>
-
-                <div className="pt-2 border-t border-gray-100 flex items-center justify-between text-xs">
-                  <Link
-                    href={`/categories/${category.slug}`}
-                    target="_blank"
-                    className="text-primary hover:underline font-semibold flex items-center gap-1 text-[11px]"
-                  >
-                    View in Store <ExternalLink className="w-3 h-3" />
-                  </Link>
-                  <button
-                    onClick={() => openEditModal(category)}
-                    className="btn-outline text-[11px] py-1 px-2.5"
-                  >
-                    Edit Photo & Info
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
+                  {subs.length > 0 && (
+                    <ul className="divide-y divide-gray-50 border-t border-gray-100">
+                      {subs.map((sub) => (
+                        <li key={sub._id}>
+                          <CategoryRow
+                            category={sub}
+                            selected={selected.has(sub._id)}
+                            onToggle={() => toggleOne(sub._id)}
+                            onEdit={() => openEditModal(sub)}
+                            onDelete={() => handleDelete(sub._id, sub.name)}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </section>
+              );
+            })}
         </div>
       )}
 
@@ -560,6 +558,29 @@ export default function AdminCategoriesPage() {
                 </div>
               </div>
 
+              {/* Parent */}
+              <div>
+                <label htmlFor="category-parent" className="block text-xs font-bold text-gray-700 mb-1">
+                  Parent category
+                </label>
+                <select
+                  id="category-parent"
+                  value={formData.parent}
+                  onChange={(e) => setFormData({ ...formData, parent: e.target.value })}
+                  className="input-field bg-white text-sm"
+                >
+                  <option value="">None (top-level category)</option>
+                  {categories
+                    .filter((c) => !c.parentSlug && c.slug !== editingCategory?.slug)
+                    .map((c) => (
+                      <option key={c.slug} value={c.slug}>
+                        {c.name}
+                      </option>
+                    ))}
+                </select>
+                <p className="text-[11px] text-gray-500 mt-1">Products are added to sub-categories; a parent shows all of them.</p>
+              </div>
+
               {/* Description */}
               <div>
                 <label className="block text-xs font-bold text-gray-700 mb-1">
@@ -649,6 +670,109 @@ export default function AdminCategoriesPage() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+function CategoryRow({
+  category,
+  isParent = false,
+  subCount = 0,
+  selected,
+  onToggle,
+  onEdit,
+  onDelete,
+  onAddSub,
+}: {
+  category: Category;
+  isParent?: boolean;
+  subCount?: number;
+  selected: boolean;
+  onToggle: () => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onAddSub?: () => void;
+}) {
+  return (
+    <div
+      className={`flex items-center gap-3 sm:gap-4 ${isParent ? 'px-4 sm:px-5 py-4 bg-gray-50/60' : 'pl-10 sm:pl-14 pr-4 sm:pr-5 py-3'} ${
+        selected ? '!bg-orange-50' : 'hover:bg-gray-50'
+      }`}
+    >
+      <input
+        type="checkbox"
+        checked={selected}
+        onChange={onToggle}
+        aria-label={`Select ${category.name}`}
+        className="w-4 h-4 accent-[#FF6B00] cursor-pointer flex-shrink-0"
+      />
+      <button
+        type="button"
+        onClick={onEdit}
+        title="Change photo"
+        className={`relative flex-shrink-0 rounded-xl overflow-hidden border border-gray-100 bg-orange-50 flex items-center justify-center ${
+          isParent ? 'w-12 h-12' : 'w-10 h-10'
+        }`}
+      >
+        {category.image ? (
+          <Image src={category.image} alt="" fill className="object-cover" sizes="48px" />
+        ) : (
+          <CategoryIcon name={category.icon} label={category.name} className={`${isParent ? 'w-6 h-6' : 'w-5 h-5'} text-primary`} />
+        )}
+      </button>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`${isParent ? 'text-base font-black' : 'text-sm font-semibold'} text-dark-300 truncate`}>{category.name}</span>
+          {!category.isActive && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full font-bold bg-gray-200 text-gray-600">Hidden</span>
+          )}
+        </div>
+        <p className="text-xs text-gray-500 mt-0.5">
+          {category.productCount} product{category.productCount === 1 ? '' : 's'}
+          {isParent && ` · ${subCount} sub-categor${subCount === 1 ? 'y' : 'ies'}`}
+          <span className="hidden sm:inline text-gray-300"> · /{category.slug}</span>
+        </p>
+      </div>
+
+      <div className="flex items-center gap-1 flex-shrink-0">
+        {onAddSub && (
+          <button
+            type="button"
+            onClick={onAddSub}
+            className="hidden sm:inline-flex items-center gap-1 text-xs font-semibold text-gray-600 hover:text-primary hover:bg-orange-50 px-2.5 py-1.5 rounded-lg"
+          >
+            <Plus className="w-3.5 h-3.5" /> Sub-category
+          </button>
+        )}
+        <Link
+          href={`/categories/${category.slug}`}
+          target="_blank"
+          className="p-2 rounded-lg text-gray-400 hover:text-primary hover:bg-orange-50"
+          title="View in store"
+          aria-label={`View ${category.name} in store`}
+        >
+          <ExternalLink className="w-4 h-4" />
+        </Link>
+        <button
+          type="button"
+          onClick={onEdit}
+          className="p-2 rounded-lg text-gray-500 hover:text-primary hover:bg-orange-50"
+          title="Edit"
+          aria-label={`Edit ${category.name}`}
+        >
+          <Edit2 className="w-4 h-4" />
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          className="p-2 rounded-lg text-gray-400 hover:text-red-600 hover:bg-red-50"
+          title="Delete"
+          aria-label={`Delete ${category.name}`}
+        >
+          <Trash2 className="w-4 h-4" />
+        </button>
+      </div>
     </div>
   );
 }

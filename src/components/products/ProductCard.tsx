@@ -1,7 +1,7 @@
 'use client';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, ShoppingCart, Eye } from 'lucide-react';
+import { Heart, ShoppingCart } from 'lucide-react';
 import { Product } from '@/types';
 import { formatPrice } from '@/lib/utils';
 import StarRating from '@/components/ui/StarRating';
@@ -23,7 +23,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     e.preventDefault();
     addItem(product, 1);
     openCart();
-    toast.success(`${product.name} added to cart!`, { icon: '🛒' });
+    toast.success('Added to cart');
   };
 
   const handleWishlist = (e: React.MouseEvent) => {
@@ -42,33 +42,30 @@ export default function ProductCard({ product }: ProductCardProps) {
     <Link href={`/products/${product.slug}`} className="group block">
       <div className="bg-white rounded-xl border border-gray-100 overflow-hidden shadow-card hover:shadow-card-hover transition-all duration-300 hover:-translate-y-1">
         {/* Image */}
-        <div className="relative aspect-square bg-gray-50 overflow-hidden">
+        <div className="relative aspect-square bg-white overflow-hidden">
           <Image
             src={product.images[0]}
             alt={product.name}
             fill
-            className="object-cover group-hover:scale-105 transition-transform duration-500"
+            className="object-contain p-2 group-hover:scale-105 transition-transform duration-500"
             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
           />
 
-          {/* Badges */}
-          <div className="absolute top-2 left-2 flex flex-col gap-1">
-            {discountPct > 0 && (
-              <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-md">
-                -{discountPct}%
-              </span>
-            )}
-            {product.isNew && (
-              <span className="bg-green-500 text-white text-xs font-bold px-2 py-0.5 rounded-md">NEW</span>
-            )}
-            {product.isFlashDeal && (
-              <span className="bg-primary text-white text-xs font-bold px-2 py-0.5 rounded-md">⚡ DEAL</span>
-            )}
+          {/* One badge only: discount beats deal beats new */}
+          <div className="absolute top-2 left-2">
+            {discountPct > 0 ? (
+              <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-md">-{discountPct}%</span>
+            ) : product.isFlashDeal ? (
+              <span className="bg-primary text-white text-xs font-bold px-2 py-0.5 rounded-md">DEAL</span>
+            ) : product.isNew ? (
+              <span className="bg-green-600 text-white text-xs font-bold px-2 py-0.5 rounded-md">NEW</span>
+            ) : null}
           </div>
 
           {/* Wishlist */}
           <button
             onClick={handleWishlist}
+            aria-label={wishlisted ? 'Remove from wishlist' : 'Add to wishlist'}
             className={`absolute top-2 right-2 w-8 h-8 rounded-full flex items-center justify-center transition-all shadow-sm ${
               wishlisted ? 'bg-red-50 text-red-500' : 'bg-white text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100'
             }`}
@@ -85,13 +82,6 @@ export default function ProductCard({ product }: ProductCardProps) {
               <ShoppingCart className="w-3.5 h-3.5" />
               Add to Cart
             </button>
-            <Link
-              href={`/products/${product.slug}`}
-              className="bg-white hover:bg-gray-50 text-dark-300 p-2 rounded-lg flex items-center justify-center transition-colors"
-              onClick={e => e.stopPropagation()}
-            >
-              <Eye className="w-3.5 h-3.5" />
-            </Link>
           </div>
 
           {/* Out of stock overlay */}
@@ -104,12 +94,12 @@ export default function ProductCard({ product }: ProductCardProps) {
 
         {/* Content */}
         <div className="p-3">
-          <p className="text-xs text-gray-400 font-medium mb-1">{product.brand}</p>
+          <p className="text-xs text-gray-400 font-medium mb-1 h-4">{product.brand && product.brand !== 'Generic' ? product.brand : ''}</p>
           <h3 className="text-sm font-medium text-dark-300 line-clamp-2 leading-snug mb-2 min-h-[2.5rem]">
             {product.name}
           </h3>
-          <StarRating rating={product.rating} numReviews={product.numReviews} size="sm" />
-          <div className="flex items-center gap-2 mt-2">
+          {product.numReviews > 0 && <StarRating rating={product.rating} numReviews={product.numReviews} size="sm" />}
+          <div className="flex flex-wrap items-baseline gap-x-2 mt-2">
             <span className="text-primary font-bold text-base">{formatPrice(product.price)}</span>
             {product.originalPrice > product.price && (
               <span className="text-gray-400 text-xs line-through">{formatPrice(product.originalPrice)}</span>

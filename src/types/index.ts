@@ -36,6 +36,11 @@ export interface Category {
   bg?: string;
   productCount: number;
   isActive: boolean;
+  sortOrder?: number;
+  /** Parent category slug, null for a top-level category. */
+  parentSlug?: string | null;
+  /** Sub-categories (only on top-level categories in a tree response). */
+  children?: Category[];
 }
 
 export interface User {
@@ -73,8 +78,8 @@ export interface Order {
   user: string | User;
   items: OrderItem[];
   shippingAddress: Address;
-  paymentMethod: 'cod' | 'card' | 'bank';
-  paymentStatus: 'pending' | 'paid' | 'failed';
+  paymentMethod: 'cod' | 'directpay' | 'bank';
+  paymentStatus: 'pending' | 'paid' | 'failed' | 'cancelled';
   orderStatus: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
   subtotal: number;
   shippingCost: number;

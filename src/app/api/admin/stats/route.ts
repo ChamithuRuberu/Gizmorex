@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
 import Order from '@/models/Order';
 import Product from '@/models/Product';
-import User from '@/models/User';
-import { MOCK_PRODUCTS } from '@/lib/data';
 
-export async function GET(request: NextRequest) {
+export const dynamic = 'force-dynamic';
+
+export async function GET(_request: NextRequest) {
   try {
     await dbConnect();
 
@@ -35,25 +35,20 @@ export async function GET(request: NextRequest) {
       stock: { $lt: 10, $gt: 0 },
     });
 
-    // Total Customers
-    const totalCustomers = await User.countDocuments({ role: 'user' });
+    // Customers = unique phone numbers that ordered (guest checkout)
+    const totalCustomers = (await Order.distinct('shippingAddress.phone')).length;
 
     // Recent Orders (last 5)
     const recentOrders = await Order.find()
       .sort({ createdAt: -1 })
       .limit(5)
-      .populate('user', 'name email')
       .lean();
 
     // Top Selling Products
-    let topProducts = await Product.find({ isActive: true })
+    const topProducts = await Product.find({ isActive: true })
       .sort({ sold: -1 })
       .limit(5)
       .lean();
-
-    if (totalProducts === 0 && topProducts.length === 0) {
-      topProducts = MOCK_PRODUCTS.slice(0, 5) as any;
-    }
 
     // Revenue by Month (last 6 months)
     const sixMonthsAgo = new Date();
@@ -89,7 +84,7 @@ export async function GET(request: NextRequest) {
       data: {
         totalRevenue,
         totalOrders,
-        totalProducts: totalProducts || MOCK_PRODUCTS.length,
+        totalProducts,
         totalCustomers,
         pendingOrders,
         lowStockProducts,
@@ -98,29 +93,11 @@ export async function GET(request: NextRequest) {
         revenueByMonth: formattedRevenueByMonth,
       },
     });
-  } catch (error: any) {
-    console.warn('Admin stats DB notice (using fallback):', error.message);
-    return NextResponse.json({
-      success: true,
-      data: {
-        totalRevenue: 1459200,
-        totalOrders: 38,
-        totalProducts: MOCK_PRODUCTS.length,
-        totalCustomers: 24,
-        pendingOrders: 3,
-        lowStockProducts: 2,
-        recentOrders: [],
-        topProducts: MOCK_PRODUCTS.slice(0, 5),
-        revenueByMonth: [
-          { month: 'Jun', revenue: 180000 },
-          { month: 'Jul', revenue: 220000 },
-          { month: 'Aug', revenue: 310000 },
-          { month: 'Sep', revenue: 290000 },
-          { month: 'Oct', revenue: 410000 },
-          { month: 'Nov', revenue: 459200 },
-        ],
-      },
-      isFallback: true,
-    });
+  } catch (error) {
+    console.error('GET /api/admin/stats failed', error);
+    return NextResponse.json(
+      { success: false, error: 'Database unavailable. Check MONGODB_URI and Atlas Network Access.' },
+      { status: 503 }
+    );
   }
 }

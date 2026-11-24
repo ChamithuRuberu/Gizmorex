@@ -1,65 +1,32 @@
-import DarazHero from '@/components/home/DarazHero';
-import DarazChannels from '@/components/home/DarazChannels';
-import DarazFlashSale from '@/components/home/DarazFlashSale';
-import GizmoMall from '@/components/home/GizmoMall';
-import CategoryGrid from '@/components/home/CategoryGrid';
-import PromoBanners from '@/components/home/PromoBanners';
+import HomeHero from '@/components/home/HomeHero';
+import TrustBar from '@/components/home/TrustBar';
+import FlashSale from '@/components/home/FlashSale';
+import PromoBand from '@/components/home/PromoBand';
+import CategoryRows from '@/components/home/CategoryRows';
 import JustForYou from '@/components/home/JustForYou';
-import BrandBanner from '@/components/home/BrandBanner';
-import CustomerReviews from '@/components/home/CustomerReviews';
-import Newsletter from '@/components/home/Newsletter';
-import { getLiveLandingData } from '@/lib/store-data';
+import BrandStrip from '@/components/home/BrandStrip';
+import { getHomeData } from '@/lib/catalog';
 
-export const revalidate = 60; // Revalidate dynamic landing data every 60 seconds
+// Everything on this page comes from MongoDB, so admin changes show on the next visit.
+export const dynamic = 'force-dynamic';
 
 export default async function HomePage() {
-  const data = await getLiveLandingData();
+  const data = await getHomeData();
 
-  // Display full catalog in "Just For You" recommendation feed
-  const justForYouProducts = data.allProducts && data.allProducts.length > 0
-    ? data.allProducts
-    : [
-        ...(data.flashDeals || []),
-        ...(data.featured || []),
-        ...(data.newArrivals || []),
-      ];
-
-  // Deduplicate by _id
-  const uniqueJustForYou = Array.from(
-    new Map(justForYouProducts.map((p) => [p._id, p])).values()
+  // Deals and featured first, then the newest products, no duplicates.
+  const forYou = Array.from(
+    new Map([...data.flashDeals, ...data.featured, ...data.latest].map((p) => [p._id, p])).values()
   );
 
   return (
-    <div className="bg-[#F5F5F5] min-h-screen flex flex-col space-y-2 pb-12">
-      {/* 1. Daraz Hero: Category Sidebar + Main Carousel + Welcome & Voucher Widget */}
-      <DarazHero categories={data.categories} />
-
-      {/* 2. Daraz Quick Access Channels Bar (Flash Sale, GizmoMall, Free Delivery, Voucher, COD) */}
-      <DarazChannels />
-
-      {/* 3. Daraz Flash Sale Section with Countdown Timer & Claim Progress */}
-      <DarazFlashSale products={data.flashDeals} />
-
-      {/* 4. GizmoMall Official Brand Stores (100% Authentic with Guarantees) */}
-      <GizmoMall />
-
-      {/* 5. Categories Grid (Daraz 2-Row Grid with Category Photos) */}
-      <CategoryGrid categories={data.categories} />
-
-      {/* 6. Promotional Campaign Banners */}
-      <PromoBanners />
-
-      {/* 7. Daraz "Just For You" Infinite Recommendations Feed with Category Tabs */}
-      <JustForYou products={uniqueJustForYou} />
-
-      {/* 8. Official Brand Partners Banner */}
-      <BrandBanner />
-
-      {/* 9. Verified Customer Reviews */}
-      <CustomerReviews />
-
-      {/* 10. Welcome Voucher Newsletter */}
-      <Newsletter />
+    <div className="bg-gray-50 min-h-screen flex flex-col gap-4 sm:gap-5 pb-12">
+      <HomeHero categories={data.categories} banners={data.banners} />
+      <TrustBar />
+      <FlashSale products={data.flashDeals} />
+      <PromoBand maxDiscount={data.maxDiscount} />
+      <CategoryRows rows={data.rows} />
+      <JustForYou products={forYou} categories={data.categories} />
+      <BrandStrip brands={data.brands} />
     </div>
   );
 }

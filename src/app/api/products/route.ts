@@ -1,106 +1,25 @@
-import { NextResponse } from 'next/server';
-import connectDB from '@/lib/mongodb';
-import Product from '@/models/Product';
-import { getInitialFallbackProducts } from '@/lib/product-store';
+import { NextRequest, NextResponse } from 'next/server';
+import { listProducts, type ProductSort } from '@/lib/catalog';
 
-export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const category = searchParams.get('category');
-  const search = searchParams.get('search');
-  const deals = searchParams.get('deals');
-  const featured = searchParams.get('featured');
-  const limit = parseInt(searchParams.get('limit') || '150', 10);
+export const dynamic = 'force-dynamic';
 
+/** GET /api/products?category=&search=&brand=&deals=true&featured=true&sort=&page=&limit= */
+export async function GET(request: NextRequest) {
+  const p = request.nextUrl.searchParams;
   try {
-    await connectDB();
-    const query: any = { isActive: true };
-
-    if (category) {
-      const spaced = category.replace(/-/g, ' ');
-      const hyphenated = category.replace(/\s+/g, '-');
-      query.$or = [
-        { category: { $regex: new RegExp(`^${category}$`, 'i') } },
-        { category: { $regex: new RegExp(`^${spaced}$`, 'i') } },
-        { category: { $regex: new RegExp(`^${hyphenated}$`, 'i') } },
-      ];
-    }
-    if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { brand: { $regex: search, $options: 'i' } },
-        { tags: { $in: [new RegExp(search, 'i')] } },
-      ];
-    }
-    if (deals === 'true') {
-      query.isFlashDeal = true;
-    }
-    if (featured === 'true') {
-      query.isFeatured = true;
-    }
-
-    const dbProducts = await Product.find(query).limit(limit).lean();
-    const fallbackAll = getInitialFallbackProducts();
-
-    if (dbProducts.length > 0) {
-      const formatted = dbProducts.map((p: any) => ({
-        ...p,
-        _id: p._id.toString(),
-      }));
-
-      // Merge any catalog products not yet synced to MongoDB
-      for (const p of fallbackAll) {
-        if (!formatted.some((dbP: any) => dbP.slug === p.slug || dbP.name.toLowerCase() === p.name.toLowerCase())) {
-          formatted.push(p);
-        }
-      }
-
-      return NextResponse.json({
-        success: true,
-        total: formatted.length,
-        data: formatted.slice(0, limit),
-      });
-    }
-  } catch (error: any) {
-    console.warn('API Products DB query fallback:', error.message);
-  }
-
-  // Fallback to active product store
-  let results = [...getInitialFallbackProducts()];
-
-  if (category) {
-    const qCat = category.toLowerCase().trim();
-    const qSpaced = qCat.replace(/-/g, ' ');
-    const qHyphen = qCat.replace(/\s+/g, '-');
-    results = results.filter(p => {
-      const pCat = (p.category || '').toLowerCase().trim();
-      const pSpaced = pCat.replace(/-/g, ' ');
-      const pHyphen = pCat.replace(/\s+/g, '-');
-      return (
-        pCat === qCat ||
-        pSpaced === qSpaced ||
-        pHyphen === qHyphen ||
-        pCat === qSpaced ||
-        pSpaced === qCat
-      );
+    const result = await listProducts({
+      category: p.get('category') || undefined,
+      search: p.get('search') || undefined,
+      brand: p.get('brand') || undefined,
+      deals: p.get('deals') === 'true',
+      featured: p.get('featured') === 'true',
+      sort: (p.get('sort') as ProductSort) || undefined,
+      page: Number(p.get('page')) || 1,
+      limit: Number(p.get('limit')) || 24,
     });
+    return NextResponse.json({ success: true, data: result.products, total: result.total, page: result.page, pages: result.pages });
+  } catch (error) {
+    console.error('GET /api/products failed', error);
+    return NextResponse.json({ success: false, error: 'Products are unavailable right now' }, { status: 503 });
   }
-  if (search) {
-    const q = search.toLowerCase();
-    results = results.filter(p =>
-      p.name.toLowerCase().includes(q) ||
-      p.brand.toLowerCase().includes(q)
-    );
-  }
-  if (deals === 'true') {
-    results = results.filter(p => p.isFlashDeal);
-  }
-  if (featured === 'true') {
-    results = results.filter(p => p.isFeatured);
-  }
-
-  return NextResponse.json({
-    success: true,
-    total: results.length,
-    data: results.slice(0, limit),
-  });
 }

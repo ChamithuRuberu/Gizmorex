@@ -1,152 +1,84 @@
-'use client';
-
-import { useParams } from 'next/navigation';
-import { useState, useEffect } from 'react';
+import type { Metadata } from 'next';
+import Link from 'next/link';
 import Image from 'next/image';
-import { getInitialFallbackCategories } from '@/lib/category-store';
-import { getProductsByCategory } from '@/lib/data';
+import { notFound } from 'next/navigation';
+import { getCategoryTree, listProducts } from '@/lib/catalog';
 import ProductCard from '@/components/products/ProductCard';
 import Breadcrumb from '@/components/ui/Breadcrumb';
-import { Product } from '@/types';
 
-export default function CategoryDetailPage() {
-  const routerParams = useParams();
-  const slug = typeof routerParams?.slug === 'string' ? routerParams.slug : Array.isArray(routerParams?.slug) ? routerParams.slug[0] : '';
-  const targetSlug = slug.toLowerCase().trim();
+export const dynamic = 'force-dynamic';
 
-  // Find category from fallback store
-  const getInitialCategory = () => {
-    const list = getInitialFallbackCategories();
-    const found = list.find(
-      (c) =>
-        c.slug.toLowerCase() === targetSlug ||
-        c.name.toLowerCase() === targetSlug ||
-        c.slug.toLowerCase().replace(/-/g, ' ') === targetSlug.replace(/-/g, ' ')
-    );
-    if (found) return found;
+type Props = { params: Promise<{ slug: string }> };
 
-    return {
-      _id: slug,
-      name: slug.replace(/-/g, ' ').replace(/\b\w/g, (l) => l.toUpperCase()),
-      slug: slug,
-      icon: 'Package',
-      color: '#FF6B00',
-      bg: '#FFF3E8',
-      image: '',
-      description: '',
-      productCount: 0,
-      isActive: true,
-      sortOrder: 0,
-    };
-  };
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const { bySlug } = await getCategoryTree();
+  const category = bySlug.get(slug.toLowerCase());
+  return { title: category ? `${category.name} price in Sri Lanka | Gizmorex` : 'Category | Gizmorex' };
+}
 
-  const [category, setCategory] = useState(getInitialCategory);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [loading, setLoading] = useState(true);
+export default async function CategoryPage({ params }: Props) {
+  const { slug } = await params;
+  const { bySlug } = await getCategoryTree();
+  const category = bySlug.get(slug.toLowerCase());
+  if (!category) notFound();
 
-  useEffect(() => {
-    async function loadCategoryData() {
-      setLoading(true);
-
-      // 1. Try fetching updated category details
-      try {
-        const catRes = await fetch('/api/categories');
-        const catData = await catRes.json();
-        if (catData.success && Array.isArray(catData.data)) {
-          const match = catData.data.find(
-            (c: any) =>
-              c.slug.toLowerCase() === targetSlug ||
-              c.name.toLowerCase() === targetSlug ||
-              c.slug.toLowerCase().replace(/-/g, ' ') === targetSlug.replace(/-/g, ' ')
-          );
-          if (match) {
-            setCategory(match);
-          }
-        }
-      } catch (err) {
-        console.warn('Category API notice:', err);
-      }
-
-      // 2. Fetch assigned products
-      try {
-        const res = await fetch(`/api/products?category=${encodeURIComponent(slug)}`);
-        const data = await res.json();
-        if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-          setProducts(data.data);
-          setLoading(false);
-          return;
-        }
-      } catch (err) {
-        console.warn('Products API notice, using fallback:', err);
-      }
-
-      // 3. Fallback to product store
-      const fallback = getProductsByCategory(slug);
-      setProducts(fallback);
-      setLoading(false);
-    }
-
-    if (slug) {
-      loadCategoryData();
-    }
-  }, [slug, targetSlug]);
+  const parent = category.parentSlug ? bySlug.get(category.parentSlug) : undefined;
+  // Sub-category chips: a parent shows its children, a sub-category shows its siblings.
+  const chips = (parent ?? category).children ?? [];
+  const { products, total } = await listProducts({ category: category.slug, limit: 100 });
 
   return (
     <div className="container-custom py-6">
       <Breadcrumb
         items={[
           { label: 'Categories', href: '/categories' },
+          ...(parent ? [{ label: parent.name, href: `/categories/${parent.slug}` }] : []),
           { label: category.name },
         ]}
       />
 
-      <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-8 flex items-center justify-between shadow-xs">
+      <div className="bg-white rounded-2xl border border-gray-100 p-6 mb-6 flex items-center justify-between gap-4">
         <div>
-          <span className="text-xs font-bold text-primary uppercase tracking-wider">
-            Category
-          </span>
-          <h1 className="text-2xl sm:text-3xl font-black text-dark-300 mt-1">
-            {category.name}
-          </h1>
+          <span className="text-xs font-bold text-primary uppercase tracking-wider">{parent ? parent.name : 'Category'}</span>
+          <h1 className="text-2xl sm:text-3xl font-black text-dark-300 mt-1">{category.name}</h1>
           <p className="text-gray-500 text-sm mt-1">
-            {products.length} products available
+            {total} product{total === 1 ? '' : 's'}
           </p>
         </div>
-
         {category.image ? (
-          <div className="relative w-20 h-20 rounded-2xl overflow-hidden shadow-sm border border-gray-100 flex-shrink-0">
-            <Image
-              src={category.image}
-              alt={category.name}
-              fill
-              className="object-cover"
-              sizes="80px"
-            />
+          <div className="relative w-20 h-20 rounded-2xl overflow-hidden border border-gray-100 flex-shrink-0">
+            <Image src={category.image} alt={category.name} fill className="object-cover" sizes="80px" />
           </div>
-        ) : (
-          <div
-            className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-inner flex-shrink-0 bg-orange-50"
-          >
-            <span
-              className="text-2xl font-black text-[#FF6B00]"
-            >
-              {category.name.slice(0, 2).toUpperCase()}
-            </span>
-          </div>
-        )}
+        ) : null}
       </div>
 
-      {loading ? (
-        <div className="py-16 text-center text-gray-400">
-          <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-          <p className="text-sm">Loading products in {category.name}...</p>
-        </div>
-      ) : products.length === 0 ? (
-        <div className="bg-white rounded-2xl p-12 text-center text-gray-400 border border-gray-100">
-          No products currently available in this category.
+      {chips.length > 0 && (
+        <nav aria-label="Sub-categories" className="flex flex-wrap gap-2 mb-6">
+          <Link
+            href={`/categories/${(parent ?? category).slug}`}
+            className={`px-3 py-1.5 rounded-full text-sm border ${!parent ? 'bg-primary text-white border-primary' : 'bg-white border-gray-200 hover:border-primary'}`}
+          >
+            All {(parent ?? category).name}
+          </Link>
+          {chips.map((c) => (
+            <Link
+              key={c.slug}
+              href={`/categories/${c.slug}`}
+              className={`px-3 py-1.5 rounded-full text-sm border ${c.slug === category.slug ? 'bg-primary text-white border-primary' : 'bg-white border-gray-200 hover:border-primary'}`}
+            >
+              {c.name} {c.productCount > 0 && <span className="opacity-70">({c.productCount})</span>}
+            </Link>
+          ))}
+        </nav>
+      )}
+
+      {products.length === 0 ? (
+        <div className="bg-white rounded-2xl p-12 text-center text-gray-500 border border-gray-100">
+          No products in this category yet.
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
           {products.map((product) => (
             <ProductCard key={product._id} product={product} />
           ))}

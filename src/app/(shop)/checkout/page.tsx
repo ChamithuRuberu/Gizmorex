@@ -1,57 +1,104 @@
 'use client';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useCartStore } from '@/store/cartStore';
-import { formatPrice, generateOrderNumber } from '@/lib/utils';
+import { formatPrice } from '@/lib/utils';
 import { SL_DISTRICTS, SHIPPING_COST, FREE_SHIPPING_THRESHOLD } from '@/lib/constants';
 import Breadcrumb from '@/components/ui/Breadcrumb';
 import Link from 'next/link';
-import { CheckCircle2, Truck, CreditCard, Building2 } from 'lucide-react';
+import { Truck, CreditCard, Building2, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
+type Method = 'cod' | 'directpay' | 'bank';
+
+declare global {
+  interface Window {
+    DirectPayIpg?: any;
+  }
+}
+
+const DIRECTPAY_SCRIPT = 'https://cdn.directpay.lk/v3/directpayipg.min.js';
+
+function loadDirectPay(): Promise<void> {
+  if (typeof window !== 'undefined' && window.DirectPayIpg) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector<HTMLScriptElement>(`script[src="${DIRECTPAY_SCRIPT}"]`);
+    const script = existing || document.createElement('script');
+    script.addEventListener('load', () => resolve());
+    script.addEventListener('error', () => reject(new Error('Could not load the card payment window')));
+    if (!existing) {
+      script.src = DIRECTPAY_SCRIPT;
+      script.async = true;
+      document.head.appendChild(script);
+    }
+  });
+}
+
 export default function CheckoutPage() {
+  const router = useRouter();
   const { items, getTotal, clearCart } = useCartStore();
-  const [placed, setPlaced] = useState(false);
-  const [orderNum, setOrderNum] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'card' | 'bank'>('cod');
+  const [submitting, setSubmitting] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<Method>('cod');
   const [form, setForm] = useState({
     fullName: '', phone: '', email: '', addressLine1: '', addressLine2: '',
     city: '', district: 'Colombo', postalCode: '', notes: '',
   });
 
+  // Display only: the server recalculates every price and the total.
   const total = getTotal();
   const shipping = total >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST;
   const grandTotal = total + shipping;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.fullName || !form.phone || !form.addressLine1 || !form.city) {
       toast.error('Please fill in all required fields');
       return;
     }
-    const num = generateOrderNumber();
-    setOrderNum(num);
-    setPlaced(true);
-    clearCart();
-    toast.success('Order placed successfully! 🎉', { duration: 5000 });
-  };
+    setSubmitting(true);
+    try {
+      if (paymentMethod === 'directpay') await loadDirectPay();
 
-  if (placed) {
-    return (
-      <div className="container-custom py-16 text-center max-w-lg mx-auto">
-        <div className="bg-white rounded-2xl shadow-card p-8">
-          <CheckCircle2 className="w-16 h-16 text-green-500 mx-auto mb-4" />
-          <h1 className="text-2xl font-black text-dark-300 mb-2">Order Confirmed!</h1>
-          <p className="text-gray-500 text-sm mb-4">Thank you for your order. We'll start processing it right away.</p>
-          <div className="bg-orange-50 rounded-xl p-4 mb-6">
-            <span className="text-xs text-gray-500">Order Number</span>
-            <p className="text-lg font-black text-primary font-mono">{orderNum}</p>
-          </div>
-          <p className="text-xs text-gray-500 mb-6">A confirmation has been sent to your phone/email.</p>
-          <Link href="/products" className="btn-primary w-full justify-center">Continue Shopping</Link>
-        </div>
-      </div>
-    );
-  }
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          items: items.map(({ product, quantity }) => ({ productId: product._id, slug: product.slug, quantity })),
+          shipping: form,
+          paymentMethod,
+          notes: form.notes,
+        }),
+      });
+      const json = await res.json();
+      if (!res.ok || !json.success) throw new Error(json.error || 'Could not place the order');
+
+      const { orderNumber, statusToken, directpay } = json.data;
+      const statusUrl = `/checkout/status?order=${encodeURIComponent(orderNumber)}&token=${statusToken}`;
+
+      if (paymentMethod === 'directpay') {
+        const dp = new window.DirectPayIpg.Init({
+          signature: directpay.signature,
+          dataString: directpay.dataString,
+          stage: directpay.stage,
+        });
+        try {
+          await dp.doInAppCheckout();
+        } catch {
+          // Closing the window or a card error still goes to the status page,
+          // which reads the real result from the server.
+        }
+        router.push(statusUrl);
+        return;
+      }
+
+      clearCart();
+      router.push(statusUrl);
+    } catch (err: any) {
+      toast.error(err.message || 'Something went wrong');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   if (items.length === 0) {
     return (
@@ -112,13 +159,13 @@ export default function CheckoutPage() {
             <div className="space-y-3">
               {[
                 { id: 'cod', label: 'Cash on Delivery (COD)', desc: 'Pay with cash when your order arrives', icon: Truck },
-                { id: 'card', label: 'Credit / Debit Card', desc: 'Pay online securely with Visa or MasterCard', icon: CreditCard },
-                { id: 'bank', label: 'Bank Transfer', desc: 'Transfer directly to our bank account', icon: Building2 },
+                { id: 'directpay', label: 'Card / Online payment', desc: 'Visa, Mastercard and more, securely through DirectPay', icon: CreditCard },
+                { id: 'bank', label: 'Bank Transfer', desc: 'We send our bank details on WhatsApp after you order', icon: Building2 },
               ].map(({ id, label, desc, icon: Icon }) => (
                 <label key={id} className={`flex items-start gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all ${
                   paymentMethod === id ? 'border-primary bg-orange-50/50' : 'border-gray-200 hover:border-gray-300'
                 }`}>
-                  <input type="radio" name="payment" value={id} checked={paymentMethod === id} onChange={() => setPaymentMethod(id as any)} className="mt-1 accent-primary" />
+                  <input type="radio" name="payment" value={id} checked={paymentMethod === id} onChange={() => setPaymentMethod(id as Method)} className="mt-1 accent-primary" />
                   <Icon className="w-5 h-5 text-primary mt-0.5" />
                   <div>
                     <span className="font-semibold text-dark-300 text-sm block">{label}</span>
@@ -155,8 +202,14 @@ export default function CheckoutPage() {
                 <span>Total</span><span className="text-primary text-xl">{formatPrice(grandTotal)}</span>
               </div>
             </div>
-            <button type="submit" className="btn-primary w-full justify-center text-base py-3">
-              Place Order ({formatPrice(grandTotal)})
+            <button type="submit" disabled={submitting} className="btn-primary w-full justify-center text-base py-3 disabled:opacity-60">
+              {submitting ? (
+                <><Loader2 className="w-4 h-4 animate-spin" /> Processing...</>
+              ) : paymentMethod === 'directpay' ? (
+                <>Pay {formatPrice(grandTotal)}</>
+              ) : (
+                <>Place Order ({formatPrice(grandTotal)})</>
+              )}
             </button>
           </div>
         </div>

@@ -37,7 +37,7 @@ export default function CartPage() {
                 {items.map(({ product, quantity }) => (
                   <div key={product._id} className="py-4 flex gap-4 items-center">
                     <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-50 flex-shrink-0">
-                      <Image src={product.images[0]} alt={product.name} fill className="object-cover" sizes="80px" />
+                      <Image src={product.images[0]} alt={product.name} fill className="object-contain p-1" sizes="80px" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-dark-300 text-sm line-clamp-1">{product.name}</p>

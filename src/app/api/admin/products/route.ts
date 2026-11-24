@@ -1,208 +1,72 @@
 import { NextRequest, NextResponse } from 'next/server';
 import dbConnect from '@/lib/mongodb';
-import Product from '@/models/Product';
-import { syncCategoryProductCounts } from '@/lib/category-sync';
-import { getInitialFallbackProducts, updateFallbackProduct } from '@/lib/product-store';
-import { MOCK_PRODUCTS } from '@/lib/data';
+import ProductModel from '@/models/Product';
+import { toProduct, getCategoryTree, categoryScope } from '@/lib/catalog';
+import { parseProductInput, InputError } from '@/lib/product-input';
+import { revalidateStorefront } from '@/lib/revalidate';
 
-// GET /api/admin/products - Get all products with filters and pagination
+export const dynamic = 'force-dynamic';
+
+const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+/** GET /api/admin/products?page=&limit=&search=&category=&status=active|inactive|low-stock */
 export async function GET(request: NextRequest) {
+  const p = request.nextUrl.searchParams;
+  const page = Math.max(Number(p.get('page')) || 1, 1);
+  const limit = Math.min(Math.max(Number(p.get('limit')) || 20, 1), 100);
+  const search = (p.get('search') || '').trim();
+  const category = (p.get('category') || '').trim().toLowerCase();
+  const status = p.get('status') || '';
+
   try {
     await dbConnect();
-    
-    const searchParams = request.nextUrl.searchParams;
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
-    const search = searchParams.get('search') || '';
-    const category = searchParams.get('category') || '';
-    const status = searchParams.get('status') || ''; // active, inactive, low-stock
-    
-    // Check if products collection is empty and auto-populate from catalog
-    const totalCountInDb = await Product.countDocuments();
-    if (totalCountInDb === 0) {
-      const initialProducts = getInitialFallbackProducts().map((p) => {
-        const { _id, isNew, ...rest } = p as any;
-        return {
-          ...rest,
-          isNewArrival: true,
-          specifications: new Map(Object.entries(p.specifications || {})),
-        };
-      });
-      await Product.insertMany(initialProducts);
-    }
-
-    const query: any = {};
-    
+    const filter: Record<string, any> = {};
     if (search) {
-      query.$or = [
-        { name: { $regex: search, $options: 'i' } },
-        { brand: { $regex: search, $options: 'i' } },
-        { tags: { $regex: search, $options: 'i' } },
-      ];
+      const rx = new RegExp(escapeRegex(search.slice(0, 80)), 'i');
+      filter.$or = [{ name: rx }, { brand: rx }, { tags: rx }, { slug: rx }];
     }
-    
-    if (category) query.category = { $regex: new RegExp(`^${category}$`, 'i') };
-    if (status === 'active') query.isActive = true;
-    if (status === 'inactive') query.isActive = false;
-    if (status === 'low-stock') query.stock = { $lt: 10, $gt: 0 };
+    if (category) {
+      const { bySlug } = await getCategoryTree({ includeInactive: true });
+      filter.category = { $in: categoryScope(category, bySlug) };
+    }
+    if (status === 'active') filter.isActive = true;
+    if (status === 'inactive') filter.isActive = false;
+    if (status === 'low-stock') filter.stock = { $lt: 10 };
 
-    const skip = (page - 1) * limit;
-
-    const [products, total] = await Promise.all([
-      Product.find(query)
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      Product.countDocuments(query),
+    const [docs, total] = await Promise.all([
+      ProductModel.find(filter).sort({ createdAt: -1 }).skip((page - 1) * limit).limit(limit).lean(),
+      ProductModel.countDocuments(filter),
     ]);
 
     return NextResponse.json({
       success: true,
-      data: products.map((p: any) => ({ ...p, _id: p._id.toString() })),
+      data: docs.map((d: any) => ({ ...toProduct(d), isActive: d.isActive !== false, isNewArrival: Boolean(d.isNewArrival) })),
       total,
       page,
-      pages: Math.ceil(total / limit) || 1,
+      pages: Math.max(Math.ceil(total / limit), 1),
     });
-  } catch (error: any) {
-    console.warn('Admin products DB query notice (using fallback):', error.message);
-    
-    const searchParams = request.nextUrl.searchParams;
-    const search = searchParams.get('search') || '';
-    const category = searchParams.get('category') || '';
-    
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '20');
-
-    let filtered = [...getInitialFallbackProducts()];
-    if (search) {
-      const q = search.toLowerCase();
-      filtered = filtered.filter((p) => p.name.toLowerCase().includes(q) || p.brand.toLowerCase().includes(q));
-    }
-    if (category) {
-      filtered = filtered.filter((p) => p.category.toLowerCase() === category.toLowerCase());
-    }
-
-    const total = filtered.length;
-    const skip = (page - 1) * limit;
-    const paginated = filtered.slice(skip, skip + limit);
-
-    return NextResponse.json({
-      success: true,
-      data: paginated,
-      total,
-      page,
-      pages: Math.ceil(total / limit) || 1,
-      isFallback: true,
-      warning: error.message,
-    });
+  } catch (error) {
+    console.error('GET /api/admin/products failed', error);
+    return NextResponse.json({ success: false, error: 'Database unavailable. Check MONGODB_URI and Atlas Network Access.' }, { status: 503 });
   }
 }
 
-// POST /api/admin/products - Create new product
+/** POST /api/admin/products */
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const {
-    name,
-    slug,
-    description,
-    price,
-    originalPrice,
-    images,
-    category,
-    brand,
-    stock,
-    features,
-    specifications,
-    tags,
-    isActive,
-    isFeatured,
-    isFlashDeal,
-    isNewArrival,
-    flashDealEndsAt,
-  } = body;
-
-  // Validation
-  if (!name || !slug || !description || !price || !category || !brand) {
-    return NextResponse.json(
-      { success: false, error: 'Required fields are missing' },
-      { status: 400 }
-    );
-  }
-
   try {
     await dbConnect();
-
-    // Check if slug already exists
-    const existingProduct = await Product.findOne({ slug });
-    if (existingProduct) {
-      return NextResponse.json(
-        { success: false, error: 'Product with this slug already exists' },
-        { status: 400 }
-      );
+    const data = await parseProductInput(await request.json());
+    if (await ProductModel.exists({ slug: data.slug })) {
+      return NextResponse.json({ success: false, error: 'A product with this slug already exists' }, { status: 409 });
     }
-
-    const product = await Product.create({
-      name,
-      slug: slug.toLowerCase(),
-      description,
-      price,
-      originalPrice: originalPrice || price,
-      images: images || [],
-      category,
-      brand,
-      stock: stock || 0,
-      features: features || [],
-      specifications: new Map(Object.entries(specifications || {})),
-      tags: tags || [],
-      isActive: isActive !== undefined ? isActive : true,
-      isFeatured: isFeatured || false,
-      isFlashDeal: isFlashDeal || false,
-      isNewArrival: isNewArrival !== undefined ? isNewArrival : true,
-      flashDealEndsAt: flashDealEndsAt || undefined,
-    });
-
-    // Also update in-memory cache
-    updateFallbackProduct(slug, {
-      ...body,
-      _id: product._id.toString(),
-    });
-
-    // Sync category product count
-    await syncCategoryProductCounts([category]);
-
-    return NextResponse.json({
-      success: true,
-      data: product,
-      message: 'Product created successfully',
-    });
-  } catch (error: any) {
-    console.warn('POST /api/admin/products DB notice (fallback cache used):', error.message);
-
-    const fallbackProduct = updateFallbackProduct(slug, {
-      name,
-      slug: slug.toLowerCase(),
-      description,
-      price,
-      originalPrice: originalPrice || price,
-      images: images || [],
-      category,
-      brand,
-      stock: stock || 0,
-      features: features || [],
-      specifications: specifications || {},
-      tags: tags || [],
-      isActive: isActive !== undefined ? isActive : true,
-      isFeatured: isFeatured || false,
-      isFlashDeal: isFlashDeal || false,
-      isNewArrival: isNewArrival !== undefined ? isNewArrival : true,
-      flashDealEndsAt: flashDealEndsAt || undefined,
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: fallbackProduct,
-      message: 'Product created in local cache! (Whitelist your IP in MongoDB Atlas to persist to cloud)',
-    });
+    const product = await ProductModel.create(data);
+    revalidateStorefront();
+    return NextResponse.json({ success: true, data: toProduct(product.toObject()), message: 'Product created' }, { status: 201 });
+  } catch (error) {
+    if (error instanceof InputError) {
+      return NextResponse.json({ success: false, error: error.message }, { status: 400 });
+    }
+    console.error('POST /api/admin/products failed', error);
+    return NextResponse.json({ success: false, error: 'Could not save the product' }, { status: 500 });
   }
 }

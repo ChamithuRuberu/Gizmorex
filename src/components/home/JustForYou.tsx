@@ -3,8 +3,9 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Product } from '@/types';
+import type { Category, Product } from '@/types';
 import { formatPrice } from '@/lib/utils';
+import { FREE_SHIPPING_THRESHOLD } from '@/lib/constants';
 import { Star, ShoppingCart, Heart, Sparkles, Truck, CheckCircle2 } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
@@ -12,19 +13,17 @@ import toast from 'react-hot-toast';
 
 interface JustForYouProps {
   products?: Product[];
+  /** Top-level categories (with children) to show as filter tabs. */
+  categories?: Category[];
 }
 
-const TABS = [
-  'All Products',
-  'Smartphones',
-  'Laptops',
-  'Audio',
-  'Gaming',
-  'Accessories',
-];
+const ALL = '';
 
-export default function JustForYou({ products = [] }: JustForYouProps) {
-  const [activeTab, setActiveTab] = useState('All Products');
+export default function JustForYou({ products = [], categories = [] }: JustForYouProps) {
+  const [activeTab, setActiveTab] = useState(ALL);
+  const tabs = [{ slug: ALL, name: 'All Products' }, ...categories.slice(0, 6)];
+  const activeCategory = categories.find((c) => c.slug === activeTab);
+  const activeScope = new Set(activeCategory ? [activeCategory.slug, ...(activeCategory.children ?? []).map((c) => c.slug)] : []);
   const [displayCount, setDisplayCount] = useState(12);
 
   const addItem = useCartStore((s) => s.addItem);
@@ -35,20 +34,17 @@ export default function JustForYou({ products = [] }: JustForYouProps) {
     e.preventDefault();
     addItem(product, 1);
     openCart();
-    toast.success(`${product.name} added to cart!`, { icon: '🛒' });
+    toast.success('Added to cart');
   };
 
-  const filteredProducts = products.filter((p) => {
-    if (activeTab === 'All Products') return true;
-    return p.category.toLowerCase().includes(activeTab.toLowerCase());
-  });
+  const filteredProducts = activeTab === ALL ? products : products.filter((p) => activeScope.has(p.category));
 
   const visibleProducts = filteredProducts.slice(0, displayCount);
 
   return (
-    <section className="py-6 bg-gray-50">
+    <section className="bg-gray-50">
       <div className="container-custom">
-        {/* Daraz "Just For You" Sticky/Prominent Header */}
+        {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-orange-100 text-primary flex items-center justify-center">
@@ -59,33 +55,33 @@ export default function JustForYou({ products = [] }: JustForYouProps) {
                 Just For You
               </h2>
               <p className="text-xs text-gray-500">
-                Personalized top-rated electronics and daily essentials
+                Deals and new stock, picked for this week
               </p>
             </div>
           </div>
 
-          {/* Daraz Category Quick Filter Pills */}
+          {/* Category tabs */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 max-w-full">
-            {TABS.map((tab) => (
+            {tabs.map((tab) => (
               <button
-                key={tab}
+                key={tab.slug}
                 onClick={() => {
-                  setActiveTab(tab);
+                  setActiveTab(tab.slug);
                   setDisplayCount(12);
                 }}
                 className={`text-xs px-3 py-1.5 rounded-full font-semibold transition-all whitespace-nowrap ${
-                  activeTab === tab
+                  activeTab === tab.slug
                     ? 'bg-[#FF6B00] text-white shadow-xs'
                     : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
                 }`}
               >
-                {tab}
+                {tab.name}
               </button>
             ))}
           </div>
         </div>
 
-        {/* 6-Column Daraz Product Grid */}
+        {/* Product grid */}
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
           {visibleProducts.map((product) => {
             const discount =
@@ -104,13 +100,13 @@ export default function JustForYou({ products = [] }: JustForYouProps) {
                 {/* Product Image */}
                 <Link
                   href={`/products/${product.slug}`}
-                  className="block relative aspect-square bg-gray-50 overflow-hidden"
+                  className="block relative aspect-square bg-white overflow-hidden"
                 >
                   <Image
                     src={product.images[0] || 'https://placehold.co/300x300'}
                     alt={product.name}
                     fill
-                    className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    className="object-contain p-2 group-hover:scale-105 transition-transform duration-300"
                     sizes="(max-width: 640px) 50vw, (max-width: 1024px) 25vw, 16vw"
                   />
 
@@ -146,7 +142,7 @@ export default function JustForYou({ products = [] }: JustForYouProps) {
                       </h3>
                     </Link>
 
-                    {/* Price in Daraz Orange */}
+                    {/* Price */}
                     <div className="flex flex-col mb-1.5">
                       <span className="text-sm font-black text-[#FF6B00]">
                         {formatPrice(product.price)}
@@ -158,24 +154,23 @@ export default function JustForYou({ products = [] }: JustForYouProps) {
                       )}
                     </div>
 
-                    {/* Ratings */}
-                    <div className="flex items-center gap-1 text-[11px] text-gray-500 mb-2">
-                      <div className="flex items-center text-amber-400">
-                        <Star className="w-3 h-3 fill-amber-400" />
-                        <span className="text-[10px] font-bold text-gray-700 ml-0.5">
-                          {product.rating ? product.rating.toFixed(1) : '5.0'}
-                        </span>
+                    {/* Ratings: only real reviews */}
+                    {product.numReviews > 0 && (
+                      <div className="flex items-center gap-1 text-[11px] text-gray-500 mb-2">
+                        <div className="flex items-center text-amber-400">
+                          <Star className="w-3 h-3 fill-amber-400" />
+                          <span className="text-[10px] font-bold text-gray-700 ml-0.5">{product.rating.toFixed(1)}</span>
+                        </div>
+                        <span className="text-[10px] text-gray-400">({product.numReviews})</span>
                       </div>
-                      <span className="text-[10px] text-gray-400">
-                        ({product.numReviews || Math.floor(Math.random() * 40 + 5)})
-                      </span>
-                    </div>
+                    )}
 
-                    {/* Daraz Badges (Free delivery & COD) */}
                     <div className="flex flex-wrap gap-1 mb-2">
-                      <span className="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
-                        <Truck className="w-2.5 h-2.5" /> Free Shipping
-                      </span>
+                      {product.price >= FREE_SHIPPING_THRESHOLD && (
+                        <span className="text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                          <Truck className="w-2.5 h-2.5" /> Free delivery
+                        </span>
+                      )}
                       <span className="text-[9px] font-semibold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded flex items-center gap-0.5">
                         <CheckCircle2 className="w-2.5 h-2.5" /> COD
                       </span>
@@ -196,7 +191,7 @@ export default function JustForYou({ products = [] }: JustForYouProps) {
           })}
         </div>
 
-        {/* Daraz "LOAD MORE" Button */}
+        {/* Load more */}
         {filteredProducts.length > displayCount && (
           <div className="mt-8 text-center">
             <button

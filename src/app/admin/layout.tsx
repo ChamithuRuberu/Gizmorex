@@ -1,7 +1,6 @@
 'use client';
 
 import Link from 'next/link';
-import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import {
   LayoutDashboard,
@@ -11,6 +10,8 @@ import {
   ArrowLeft,
   Grid3x3,
   Star,
+  LogOut,
+  ImageIcon,
 } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -29,9 +30,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="w-64 bg-dark-500 text-white flex flex-col flex-shrink-0">
         <div className="p-6 border-b border-dark-400">
           <Link href="/" className="block">
-            <div className="relative w-36 h-10">
-              <Image src="/logo.jpg" alt="Gizmorex" fill className="object-contain brightness-200" priority />
-            </div>
+            <span className="text-2xl font-black tracking-tight">
+              <span className="text-primary">GIZMO</span>
+              <span className="text-white">REX</span>
+            </span>
           </Link>
           <span className="text-[10px] font-bold uppercase tracking-wider text-primary mt-2 block">
             Admin Console
@@ -73,6 +75,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             Categories
           </Link>
           <Link
+            href="/admin/banners"
+            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              isActive('/admin/banners')
+                ? 'bg-[#FF6B00] text-white'
+                : 'text-gray-300 hover:bg-dark-400 hover:text-white'
+            }`}
+          >
+            <ImageIcon className="w-4 h-4" />
+            Banners
+          </Link>
+          <Link
             href="/admin/orders"
             className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
               isActive('/admin/orders')
@@ -107,7 +120,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </Link>
         </nav>
 
-        <div className="p-4 border-t border-dark-400">
+        <div className="p-4 border-t border-dark-400 space-y-3">
+          <button
+            type="button"
+            onClick={async () => {
+              await fetch('/api/admin-auth', { method: 'DELETE' });
+              window.location.href = '/admin-login';
+            }}
+            className="flex items-center gap-2 text-xs text-gray-400 hover:text-primary transition-colors"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+            Log out
+          </button>
           <Link
             href="/"
             className="flex items-center gap-2 text-xs text-gray-400 hover:text-primary transition-colors"

@@ -29,7 +29,7 @@ THAT'S IT! 🎊
 ================================================================================
 
 ✅ Cloud Name: yvp0ravz
-✅ API Key: 454265773368939
+✅ API Key: <your-cloudinary-api-key>
 ✅ API Secret: Configured
 
 What this means:
