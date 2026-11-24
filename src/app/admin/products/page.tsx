@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { formatPrice } from '@/lib/utils';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Plus, Edit, Trash2, Search, Filter, AlertTriangle } from 'lucide-react';
+import { Plus, Edit, Trash2, Search, Filter, AlertTriangle, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { Product } from '@/types';
 
@@ -19,10 +19,14 @@ export default function AdminProductsPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalProducts, setTotalProducts] = useState(0);
+  const [limit, setLimit] = useState(20);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [moveTo, setMoveTo] = useState('');
+  const [busy, setBusy] = useState(false);
   
   useEffect(() => {
     fetchProducts();
-  }, [page, statusFilter, categoryFilter]);
+  }, [page, statusFilter, categoryFilter, limit]);
 
   useEffect(() => {
     async function loadCategories() {
@@ -44,7 +48,7 @@ export default function AdminProductsPage() {
     try {
       const params = new URLSearchParams({
         page: page.toString(),
-        limit: '20',
+        limit: String(limit),
         ...(searchTerm && { search: searchTerm }),
         ...(statusFilter !== 'all' && { status: statusFilter }),
         ...(categoryFilter && { category: categoryFilter }),
@@ -55,6 +59,7 @@ export default function AdminProductsPage() {
       
       if (data.success) {
         setProducts(data.data);
+        setSelected(new Set());
         setTotalPages(data.pages);
         setTotalProducts(data.total);
         setLoadError('');
@@ -95,6 +100,44 @@ export default function AdminProductsPage() {
       }
     } catch (error) {
       toast.error('Failed to delete product', { id: toastId });
+    }
+  };
+
+  const allOnPage = products.length > 0 && products.every((p) => selected.has(p._id));
+  const toggleAll = () => setSelected(allOnPage ? new Set() : new Set(products.map((p) => p._id)));
+  const toggleOne = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const bulk = async (action: 'move' | 'delete' | 'activate' | 'deactivate') => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    if (action === 'move' && !moveTo) return toast.error('Choose a category to move to');
+    if (action === 'delete' && !confirm(`Delete ${ids.length} product(s)? This cannot be undone.`)) return;
+
+    setBusy(true);
+    const toastId = toast.loading('Working...');
+    try {
+      const res = await fetch('/api/admin/products/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action, ids, category: moveTo }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message, { id: toastId });
+        setMoveTo('');
+        await fetchProducts();
+      } else {
+        toast.error(data.error || 'Bulk action failed', { id: toastId });
+      }
+    } catch {
+      toast.error('Bulk action failed', { id: toastId });
+    } finally {
+      setBusy(false);
     }
   };
 
@@ -195,12 +238,58 @@ export default function AdminProductsPage() {
         </form>
       </div>
 
+      {/* Bulk actions */}
+      {selected.size > 0 && (
+        <div className="sticky top-2 z-20 bg-dark-300 text-white rounded-2xl px-4 py-3 flex flex-wrap items-center gap-3 shadow-lg">
+          <span className="text-sm font-bold">{selected.size} selected</span>
+          <select
+            value={moveTo}
+            onChange={(e) => setMoveTo(e.target.value)}
+            className="input-field !py-1.5 !text-xs !text-dark-300 min-w-[180px]"
+            aria-label="Move selected products to category"
+          >
+            <option value="">Move to category...</option>
+            {categoriesList.map((cat) => (
+              <option key={cat.slug} value={cat.slug}>
+                {cat.parentSlug ? `  ${cat.name}` : cat.name}
+              </option>
+            ))}
+          </select>
+          <button disabled={busy || !moveTo} onClick={() => bulk('move')} className="btn-primary text-xs py-1.5 px-3 disabled:opacity-50">
+            Move
+          </button>
+          <button disabled={busy} onClick={() => bulk('activate')} className="text-xs font-semibold bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg">
+            Activate
+          </button>
+          <button disabled={busy} onClick={() => bulk('deactivate')} className="text-xs font-semibold bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg">
+            Deactivate
+          </button>
+          <button disabled={busy} onClick={() => bulk('delete')} className="text-xs font-bold bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg inline-flex items-center gap-1">
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete
+          </button>
+          <button onClick={() => setSelected(new Set())} className="ml-auto text-xs text-gray-300 hover:text-white inline-flex items-center gap-1">
+            <X className="w-3.5 h-3.5" />
+            Clear
+          </button>
+        </div>
+      )}
+
       {/* Products Table */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-card overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm">
             <thead className="bg-gray-50 text-gray-500 uppercase text-[10px] font-bold tracking-wider border-b border-gray-100">
               <tr>
+                <th className="pl-6 pr-2 py-3 w-8">
+                  <input
+                    type="checkbox"
+                    checked={allOnPage}
+                    onChange={toggleAll}
+                    aria-label="Select all products on this page"
+                    className="w-4 h-4 accent-[#FF6B00] cursor-pointer"
+                  />
+                </th>
                 <th className="px-6 py-3">Product</th>
                 <th className="px-6 py-3">Category</th>
                 <th className="px-6 py-3">Price</th>
@@ -213,7 +302,7 @@ export default function AdminProductsPage() {
             <tbody className="divide-y divide-gray-100">
               {products.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
                     <div className="max-w-sm mx-auto text-center space-y-3">
                       <p className="font-semibold text-dark-300">No products found in catalog</p>
                       <p className="text-xs text-gray-400">
@@ -239,7 +328,16 @@ export default function AdminProductsPage() {
                 </tr>
               ) : (
                 products.map((p) => (
-                  <tr key={p._id} className="hover:bg-gray-50/50 transition-colors">
+                  <tr key={p._id} className={`transition-colors ${selected.has(p._id) ? 'bg-orange-50/60' : 'hover:bg-gray-50/50'}`}>
+                    <td className="pl-6 pr-2 py-4 w-8">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(p._id)}
+                        onChange={() => toggleOne(p._id)}
+                        aria-label={`Select ${p.name}`}
+                        className="w-4 h-4 accent-[#FF6B00] cursor-pointer"
+                      />
+                    </td>
                     <td className="px-6 py-4 flex items-center gap-3">
                       <div className="relative w-10 h-10 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                         <Image
@@ -335,9 +433,28 @@ export default function AdminProductsPage() {
         </div>
       </div>
 
+      <div className="flex items-center justify-end gap-2 text-xs text-gray-500">
+        <label htmlFor="page-size">Per page</label>
+        <select
+          id="page-size"
+          value={limit}
+          onChange={(e) => {
+            setLimit(Number(e.target.value));
+            setPage(1);
+          }}
+          className="input-field !py-1 !text-xs w-20"
+        >
+          {[20, 50, 100].map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+      </div>
+
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center gap-2">
+        <div className="flex justify-center gap-2 flex-wrap">
           {[...Array(totalPages)].map((_, i) => (
             <button
               key={i}
