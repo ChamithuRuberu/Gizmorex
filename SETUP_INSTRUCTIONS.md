@@ -4,7 +4,7 @@
 
 Your Cloudinary credentials are already set up:
 - **Cloud Name:** yvp0ravz
-- **API Key:** 454265773368939
+- **API Key:** <your-cloudinary-api-key>
 - **API Secret:** Configured ✅
 
 ---
@@ -192,13 +192,13 @@ All configuration is complete! Here's what's set:
 ```env
 MONGODB_URI=mongodb://localhost:27017/gizmorex
 NEXTAUTH_URL=http://localhost:3000
-NEXTAUTH_SECRET=gizmorex-super-secret-key-change-in-production-2024
-JWT_SECRET=gizmorex-jwt-secret-key-change-in-production-2024
+NEXTAUTH_SECRET=<random-64-hex>
+JWT_SECRET=<random-64-hex>
 
 # Cloudinary - CONFIGURED ✅
 CLOUDINARY_CLOUD_NAME=yvp0ravz
-CLOUDINARY_API_KEY=454265773368939
-CLOUDINARY_API_SECRET=B8FTSP2_Xrei6PHU6sh7U92SIFk
+CLOUDINARY_API_KEY=<your-cloudinary-api-key>
+CLOUDINARY_API_SECRET=<your-cloudinary-api-secret>
 ```
 
 ### ✅ Database
