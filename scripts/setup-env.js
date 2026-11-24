@@ -86,8 +86,6 @@ NEXT_PUBLIC_APP_URL=${appUrl}
 NEXT_PUBLIC_APP_NAME=Gizmorex
 
 JWT_SECRET=${crypto.randomBytes(32).toString('hex')}
-NEXTAUTH_SECRET=${crypto.randomBytes(32).toString('hex')}
-NEXTAUTH_URL=${appUrl}
 
 ADMIN_EMAIL=${adminEmail}
 ADMIN_PASSWORD_HASH=${esc(hash)}
