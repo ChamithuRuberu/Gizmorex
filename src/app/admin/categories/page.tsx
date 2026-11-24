@@ -51,6 +51,8 @@ export default function AdminCategoriesPage() {
   const [uploadingImage, setUploadingImage] = useState(false);
   const [showModal, setShowModal] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -187,6 +189,55 @@ export default function AdminCategoriesPage() {
     }
   };
 
+  const toggleOne = (id: string) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const bulkDelete = async () => {
+    const ids = [...selected];
+    if (ids.length === 0) return;
+    const chosen = categories.filter((c) => selected.has(c._id));
+    const withStuff = chosen.filter((c) => (c.productCount || 0) > 0 || categories.some((x) => x.parentSlug === c.slug));
+
+    let cascade = false;
+    if (withStuff.length > 0) {
+      cascade = confirm(
+        `${withStuff.length} of the ${ids.length} selected categor${ids.length === 1 ? 'y has' : 'ies have'} products or sub-categories.\n\n` +
+          `OK = delete them AND all their products and sub-categories (cannot be undone).\n` +
+          `Cancel = keep those, delete only the empty ones.`
+      );
+      if (cascade && !confirm('Last check: really delete these categories together with all their products?')) return;
+    } else if (!confirm(`Delete ${ids.length} empty categor${ids.length === 1 ? 'y' : 'ies'}?`)) {
+      return;
+    }
+
+    setBulkBusy(true);
+    const toastId = toast.loading('Deleting...');
+    try {
+      const res = await fetch('/api/admin/categories/bulk', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', ids, cascade }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast.success(data.message, { id: toastId, duration: 6000 });
+        setSelected(new Set());
+        await fetchCategories();
+        broadcastCategoryUpdate();
+      } else {
+        toast.error(data.error || 'Bulk delete failed', { id: toastId });
+      }
+    } catch {
+      toast.error('Bulk delete failed', { id: toastId });
+    } finally {
+      setBulkBusy(false);
+    }
+  };
+
   const openEditModal = (category: Category) => {
     setEditingCategory(category);
     setFormData({
@@ -257,6 +308,29 @@ export default function AdminCategoriesPage() {
         </div>
       </div>
 
+      {selected.size > 0 && (
+        <div className="sticky top-2 z-20 bg-dark-300 text-white rounded-2xl px-4 py-3 flex flex-wrap items-center gap-3 shadow-lg">
+          <span className="text-sm font-bold">{selected.size} selected</span>
+          <button
+            disabled={bulkBusy}
+            onClick={bulkDelete}
+            className="text-xs font-bold bg-red-600 hover:bg-red-700 px-3 py-1.5 rounded-lg inline-flex items-center gap-1 disabled:opacity-50"
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            Delete selected
+          </button>
+          <button
+            onClick={() => setSelected(selected.size === categories.length ? new Set() : new Set(categories.map((c) => c._id)))}
+            className="text-xs font-semibold bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg"
+          >
+            {selected.size === categories.length ? 'Select none' : 'Select all'}
+          </button>
+          <button onClick={() => setSelected(new Set())} className="ml-auto text-xs text-gray-300 hover:text-white">
+            Clear
+          </button>
+        </div>
+      )}
+
       {/* Categories Grid */}
       {categories.length === 0 ? (
         <div className="bg-white rounded-2xl p-12 text-center text-gray-500 border border-gray-100 max-w-md mx-auto">
@@ -298,9 +372,18 @@ export default function AdminCategoriesPage() {
                     </button>
                   </div>
                 )}
-                {/* Product Count Pill */}
-                <div className="absolute top-2.5 left-2.5 bg-black/60 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">
-                  {category.productCount || 0} Products
+                {/* Select + Product Count */}
+                <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5">
+                  <input
+                    type="checkbox"
+                    checked={selected.has(category._id)}
+                    onChange={() => toggleOne(category._id)}
+                    aria-label={`Select ${category.name}`}
+                    className="w-4 h-4 accent-[#FF6B00] cursor-pointer"
+                  />
+                  <span className="bg-black/60 backdrop-blur-md text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                    {category.productCount || 0} Products
+                  </span>
                 </div>
                 {/* Actions Pill */}
                 <div className="absolute top-2.5 right-2.5 flex items-center gap-1 bg-white/90 backdrop-blur-md p-1 rounded-lg shadow-sm">
