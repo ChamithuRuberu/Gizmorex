@@ -86,3 +86,7 @@ body {
 }
 .marquee { animation: marquee 20s linear infinite; }
 
+
+/* Horizontal rows that swipe without a visible scrollbar */
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }

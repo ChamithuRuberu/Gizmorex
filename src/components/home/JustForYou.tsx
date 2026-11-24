@@ -34,7 +34,7 @@ export default function JustForYou({ products = [], categories = [] }: JustForYo
     e.preventDefault();
     addItem(product, 1);
     openCart();
-    toast.success(`${product.name} added to cart!`, { icon: '🛒' });
+    toast.success('Added to cart');
   };
 
   const filteredProducts = activeTab === ALL ? products : products.filter((p) => activeScope.has(p.category));
@@ -42,7 +42,7 @@ export default function JustForYou({ products = [], categories = [] }: JustForYo
   const visibleProducts = filteredProducts.slice(0, displayCount);
 
   return (
-    <section className="py-6 bg-gray-50">
+    <section className="bg-gray-50">
       <div className="container-custom">
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
@@ -55,7 +55,7 @@ export default function JustForYou({ products = [], categories = [] }: JustForYo
                 Just For You
               </h2>
               <p className="text-xs text-gray-500">
-                Personalized top-rated electronics and daily essentials
+                Deals and new stock, picked for this week
               </p>
             </div>
           </div>

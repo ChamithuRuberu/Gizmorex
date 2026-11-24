@@ -69,7 +69,7 @@ export default function FlashSale({ products = [] }: FlashSaleProps) {
   };
 
   return (
-    <section className="py-4 bg-gray-50">
+    <section className="bg-gray-50">
       <div className="container-custom">
         {/* Section Container */}
         <div className="bg-white rounded-2xl border border-gray-100 shadow-card p-4 sm:p-5">

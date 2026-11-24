@@ -1,6 +1,8 @@
 import HomeHero from '@/components/home/HomeHero';
+import TrustBar from '@/components/home/TrustBar';
 import FlashSale from '@/components/home/FlashSale';
-import CategoryGrid from '@/components/home/CategoryGrid';
+import PromoBand from '@/components/home/PromoBand';
+import CategoryRows from '@/components/home/CategoryRows';
 import JustForYou from '@/components/home/JustForYou';
 import BrandStrip from '@/components/home/BrandStrip';
 import { getHomeData } from '@/lib/catalog';
@@ -17,10 +19,12 @@ export default async function HomePage() {
   );
 
   return (
-    <div className="bg-[#F5F5F5] min-h-screen flex flex-col space-y-2 pb-12">
+    <div className="bg-gray-50 min-h-screen flex flex-col gap-4 sm:gap-5 pb-12">
       <HomeHero categories={data.categories} banners={data.banners} />
+      <TrustBar />
       <FlashSale products={data.flashDeals} />
-      <CategoryGrid categories={data.categories} />
+      <PromoBand maxDiscount={data.maxDiscount} />
+      <CategoryRows rows={data.rows} />
       <JustForYou products={forYou} categories={data.categories} />
       <BrandStrip brands={data.brands} />
     </div>

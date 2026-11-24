@@ -99,7 +99,7 @@ export default function ProductCard({ product }: ProductCardProps) {
             {product.name}
           </h3>
           {product.numReviews > 0 && <StarRating rating={product.rating} numReviews={product.numReviews} size="sm" />}
-          <div className="flex items-center gap-2 mt-2">
+          <div className="flex flex-wrap items-baseline gap-x-2 mt-2">
             <span className="text-primary font-bold text-base">{formatPrice(product.price)}</span>
             {product.originalPrice > product.price && (
               <span className="text-gray-400 text-xs line-through">{formatPrice(product.originalPrice)}</span>
