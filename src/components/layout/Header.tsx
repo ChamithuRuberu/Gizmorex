@@ -2,19 +2,16 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Search, ShoppingCart, Heart, User, Menu, X, ChevronDown, LogOut, Package, Settings } from 'lucide-react';
+import { ShoppingCart, Heart, User, Menu, X, ChevronDown, LogOut, Package, Settings } from 'lucide-react';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useCategoryStore } from '@/store/categoryStore';
-import { useRouter } from 'next/navigation';
+import HeaderSearch from '@/components/layout/HeaderSearch';
 
 export default function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const router = useRouter();
   const itemCount = useCartStore(s => s.getItemCount());
   const wishlistCount = useWishlistStore(s => s.count());
   const openCart = useCartStore(s => s.openCart);
@@ -41,15 +38,6 @@ export default function Header() {
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      const cat = selectedCategory ? `&category=${encodeURIComponent(selectedCategory)}` : '';
-      router.push(`/products?search=${encodeURIComponent(searchQuery)}${cat}`);
-      setSearchQuery('');
-    }
-  };
-
   return (
     <header className={`sticky top-0 z-40 bg-white transition-shadow ${isScrolled ? 'shadow-md' : 'border-b border-gray-100'}`}>
       <div className="container-custom">
@@ -59,38 +47,8 @@ export default function Header() {
             <Image src="/logo-wordmark.png" alt="Gizmorex" width={887} height={163} priority className="h-6 sm:h-7 w-auto" />
           </Link>
 
-          {/* Search Bar */}
-          <form onSubmit={handleSearch} className="flex-1 hidden sm:flex items-center border-2 border-gray-200 rounded-lg overflow-hidden focus-within:border-primary transition-colors">
-            <select
-              value={selectedCategory}
-              onChange={e => setSelectedCategory(e.target.value)}
-              className="hidden lg:block bg-gray-50 border-r border-gray-200 px-3 py-2.5 text-sm text-gray-600 focus:outline-none cursor-pointer max-w-[160px] truncate"
-            >
-              <option value="">All Categories</option>
-              {categories.map(c =>
-                c.children?.length ? (
-                  <optgroup key={c.slug} label={c.name}>
-                    <option value={c.slug}>All {c.name}</option>
-                    {c.children.map(s => (
-                      <option key={s.slug} value={s.slug}>{s.name}</option>
-                    ))}
-                  </optgroup>
-                ) : (
-                  <option key={c.slug} value={c.slug}>{c.name}</option>
-                )
-              )}
-            </select>
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search for products, brands..."
-              className="flex-1 px-4 py-2.5 text-sm focus:outline-none"
-            />
-            <button type="submit" className="bg-primary hover:bg-primary-600 text-white px-4 py-2.5 transition-colors" aria-label="Search">
-              <Search className="w-4 h-4" />
-            </button>
-          </form>
+          {/* Search Bar with Live Similar Products Autocomplete */}
+          <HeaderSearch categories={categories} />
 
           {/* Right Actions */}
           <div className="flex items-center gap-1 ml-auto sm:ml-0">
@@ -159,20 +117,9 @@ export default function Header() {
         </div>
 
         {/* Mobile Search */}
-        <form onSubmit={handleSearch} className="sm:hidden flex items-center gap-2 pb-3">
-          <div className="flex-1 flex items-center border-2 border-gray-200 rounded-lg overflow-hidden focus-within:border-primary transition-colors">
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              placeholder="Search products..."
-              className="flex-1 px-3 py-2 text-sm focus:outline-none"
-            />
-            <button type="submit" className="bg-primary text-white px-3 py-2" aria-label="Search">
-              <Search className="w-4 h-4" />
-            </button>
-          </div>
-        </form>
+        <div className="sm:hidden pb-3">
+          <HeaderSearch categories={categories} isMobile onSearchSubmit={() => setIsMobileMenuOpen(false)} />
+        </div>
       </div>
 
       {/* Mobile Nav Menu */}
