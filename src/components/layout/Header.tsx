@@ -67,11 +67,11 @@ export default function Header() {
               className="hidden lg:block bg-gray-50 border-r border-gray-200 px-3 py-2.5 text-sm text-gray-600 focus:outline-none cursor-pointer max-w-[160px] truncate"
             >
               <option value="">All Categories</option>
-              {categories.filter(c => c.productCount > 0).map(c =>
-                c.children?.some(s => s.productCount > 0) ? (
+              {categories.map(c =>
+                c.children?.length ? (
                   <optgroup key={c.slug} label={c.name}>
                     <option value={c.slug}>All {c.name}</option>
-                    {c.children.filter(s => s.productCount > 0).map(s => (
+                    {c.children.map(s => (
                       <option key={s.slug} value={s.slug}>{s.name}</option>
                     ))}
                   </optgroup>
@@ -182,7 +182,7 @@ export default function Header() {
             <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="px-3 py-2.5 text-sm font-semibold text-gray-800 hover:text-primary hover:bg-orange-50 rounded-lg">
               Home
             </Link>
-            {categories.filter(c => c.productCount > 0).map(c => (
+            {categories.map(c => (
               <details key={c.slug} className="group rounded-lg">
                 <summary className="list-none flex items-center justify-between px-3 py-2.5 text-sm font-semibold text-gray-800 hover:bg-orange-50 rounded-lg cursor-pointer">
                   {c.name}
@@ -190,11 +190,11 @@ export default function Header() {
                 </summary>
                 <div className="pl-3 pb-2 flex flex-col">
                   <Link href={`/categories/${c.slug}`} onClick={() => setIsMobileMenuOpen(false)} className="px-3 py-2 text-sm text-primary font-medium">
-                    All {c.name} ({c.productCount})
+                    All {c.name}
                   </Link>
-                  {c.children?.filter(s => s.productCount > 0).map(s => (
+                  {c.children?.map(s => (
                     <Link key={s.slug} href={`/categories/${s.slug}`} onClick={() => setIsMobileMenuOpen(false)} className="px-3 py-2 text-sm text-gray-600 hover:text-primary">
-                      {s.name} <span className="text-gray-400">({s.productCount})</span>
+                      {s.name}{s.productCount > 0 && <span className="text-gray-400"> ({s.productCount})</span>}
                     </Link>
                   ))}
                 </div>
